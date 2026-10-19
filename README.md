@@ -101,32 +101,6 @@ Bookora is designed from the ground up to feel like walking into a candlelit Vic
 - Android Studio / VS Code with Flutter extension
 - An Android device or emulator (Android 5.0+ / API 21+)
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Khushi-Sanghvi/Bookora.git
-   cd Bookora/between_world
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Run on a connected device:**
-   ```bash
-   flutter run
-   ```
-
-4. **Build release APK:**
-   ```bash
-   flutter build apk --split-per-abi
-   ```
-   The compiled APKs will be generated in `build/app/outputs/flutter-apk/`.
-
----
-
 ## 📦 Download Latest Release
 
 Ready-to-install Android APKs are available directly on the [GitHub Releases](https://github.com/Khushi-Sanghvi/Bookora/releases/latest) page:
