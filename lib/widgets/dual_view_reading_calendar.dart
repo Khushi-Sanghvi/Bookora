@@ -1,14 +1,19 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/book.dart';
 import '../models/enums.dart';
-import '../models/reading_calendar_entry.dart';
+import '../models/calendar_book_entry.dart';
+import '../providers/reading_calendar_provider.dart';
 import '../theme/reading_app_colors.dart';
 import '../screens/reader_screen.dart';
 import '../screens/pdf_reader_screen.dart';
 import '../screens/epub_reader_screen.dart';
 import 'book_cover_image.dart';
+import 'calendar_book_entries_section.dart';
+import '../services/book_cover_color_extractor.dart';
 
 class BookSpanInfo {
   final String id;
@@ -22,7 +27,8 @@ class BookSpanInfo {
   final int currentPage;
   final int totalPages;
   final Book? book;
-  final List<String> bookStrings;
+  final List<CalendarBookEntry>? bookEntries;
+  final List<String>? stringEntries;
 
   BookSpanInfo({
     required this.id,
@@ -36,14 +42,14 @@ class BookSpanInfo {
     this.currentPage = 0,
     this.totalPages = 300,
     this.book,
-    dynamic bookStrings,
-  }) : bookStrings = ReadingCalendarEntry.parseBookStrings(bookStrings ?? [bookTitle]);
+    this.bookEntries,
+    this.stringEntries,
+  });
 }
 
-class DualViewReadingCalendar extends StatefulWidget {
+class DualViewReadingCalendar extends ConsumerStatefulWidget {
   final List<BookSpanInfo> bookSpans;
   final Map<DateTime, int> readingActivityMap;
-  final Map<DateTime, List<String>>? dateBookStringsMap;
   final int bestStreak;
   final int daysRead;
   final int totalPages;
@@ -53,7 +59,6 @@ class DualViewReadingCalendar extends StatefulWidget {
     super.key,
     required this.bookSpans,
     required this.readingActivityMap,
-    this.dateBookStringsMap,
     this.bestStreak = 0,
     this.daysRead = 0,
     this.totalPages = 0,
@@ -61,16 +66,21 @@ class DualViewReadingCalendar extends StatefulWidget {
   });
 
   @override
-  State<DualViewReadingCalendar> createState() => _DualViewReadingCalendarState();
+  ConsumerState<DualViewReadingCalendar> createState() =>
+      _DualViewReadingCalendarState();
 }
 
-class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
+class _DualViewReadingCalendarState
+    extends ConsumerState<DualViewReadingCalendar> {
   late DateTime _selectedMonth;
 
   @override
   void initState() {
     super.initState();
-    _selectedMonth = DateTime(widget.initialMonth.year, widget.initialMonth.month);
+    _selectedMonth = DateTime(
+      widget.initialMonth.year,
+      widget.initialMonth.month,
+    );
   }
 
   void _previousMonth() {
@@ -127,7 +137,11 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               IconButton(
-                icon: Icon(Icons.chevron_left, color: colors.textSecondary, size: 22),
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: colors.textSecondary,
+                  size: 22,
+                ),
                 onPressed: _previousMonth,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -147,7 +161,11 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
               ),
               const SizedBox(width: 4),
               IconButton(
-                icon: Icon(Icons.chevron_right, color: colors.textSecondary, size: 22),
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: colors.textSecondary,
+                  size: 22,
+                ),
                 onPressed: _nextMonth,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -234,15 +252,25 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
 
   // --- Monthly Calendar Span Grid with Connector Lines, Stacked Cover Decks & Finish Badges ---
   Widget _buildMonthSpanGridView(ReadingAppColors colors) {
-    final daysInMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
-    final firstWeekday = DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday % 7;
+    final daysInMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    ).day;
+    final firstWeekday =
+        DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday % 7;
 
-    final prevMonthDays = DateTime(_selectedMonth.year, _selectedMonth.month, 0).day;
+    final prevMonthDays = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month,
+      0,
+    ).day;
     final totalCells = daysInMonth + firstWeekday;
     final numRows = (totalCells / 7).ceil();
     final gridTotalCells = numRows * 7;
 
     final today = DateTime.now();
+    final allChronicles = ref.watch(readingCalendarNotifierProvider);
 
     final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
@@ -252,7 +280,8 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
         .toList();
 
     final monthSpans = displaySpans.where((span) {
-      return !span.endDate.isBefore(monthStart) && !span.startDate.isAfter(monthEnd);
+      return !span.endDate.isBefore(monthStart) &&
+          !span.startDate.isAfter(monthEnd);
     }).toList();
 
     return Column(
@@ -260,7 +289,16 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-              .map((d) => Text(d, style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)))
+              .map(
+                (d) => Text(
+                  d,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 12),
@@ -283,6 +321,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                       firstWeekday: firstWeekday,
                       cellWidth: cellWidth,
                       cellHeight: cellHeight,
+                      isDark: Theme.of(context).brightness == Brightness.dark,
+                      onColorExtracted: () {
+                        if (mounted) setState(() {});
+                      },
                     ),
                   ),
 
@@ -305,16 +347,31 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
 
                       if (isPrevMonth) {
                         displayDay = prevMonthDays - firstWeekday + index + 1;
-                        date = DateTime(_selectedMonth.year, _selectedMonth.month - 1, displayDay);
+                        date = DateTime(
+                          _selectedMonth.year,
+                          _selectedMonth.month - 1,
+                          displayDay,
+                        );
                       } else if (isNextMonth) {
                         displayDay = index - totalCells + 1;
-                        date = DateTime(_selectedMonth.year, _selectedMonth.month + 1, displayDay);
+                        date = DateTime(
+                          _selectedMonth.year,
+                          _selectedMonth.month + 1,
+                          displayDay,
+                        );
                       } else {
                         displayDay = index - firstWeekday + 1;
-                        date = DateTime(_selectedMonth.year, _selectedMonth.month, displayDay);
+                        date = DateTime(
+                          _selectedMonth.year,
+                          _selectedMonth.month,
+                          displayDay,
+                        );
                       }
 
-                      final isToday = today.year == date.year && today.month == date.month && today.day == date.day;
+                      final isToday =
+                          today.year == date.year &&
+                          today.month == date.month &&
+                          today.day == date.day;
 
                       // Find all books active, started, or finished on this date
                       final startingBooks = monthSpans.where((span) {
@@ -331,14 +388,22 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                       }).toList();
 
                       final activeSpansOnDate = monthSpans.where((span) {
-                        return !date.isBefore(span.startDate) && !date.isAfter(span.endDate);
+                        return !date.isBefore(span.startDate) &&
+                            !date.isAfter(span.endDate);
                       }).toList();
+
+                      final dateKey =
+                          ReadingCalendarRepository.normalizeDateKey(date);
+                      final chroniclesOnDate = allChronicles[dateKey] ?? [];
 
                       return GestureDetector(
                         onTap: () {
-                          if (activeSpansOnDate.isNotEmpty) {
-                            _showDayActivitySheet(context, date, activeSpansOnDate, colors);
-                          }
+                          _showDayActivitySheet(
+                            context,
+                            date,
+                            activeSpansOnDate,
+                            colors,
+                          );
                         },
                         child: Container(
                           margin: const EdgeInsets.all(2),
@@ -346,7 +411,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                             border: isToday
-                                ? Border.all(color: colors.streakAmber, width: 1.5)
+                                ? Border.all(
+                                    color: colors.streakAmber,
+                                    width: 1.5,
+                                  )
                                 : null,
                           ),
                           child: Stack(
@@ -358,59 +426,41 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                                   '$displayDay',
                                   style: TextStyle(
                                     color: isCurrentMonthDay
-                                        ? (isToday ? colors.streakAmber : colors.textPrimary)
-                                        : colors.textSecondary.withValues(alpha: 0.5),
-                                    fontWeight: isToday || activeSpansOnDate.isNotEmpty ? FontWeight.bold : FontWeight.normal,
+                                        ? (isToday
+                                              ? colors.streakAmber
+                                              : colors.textPrimary)
+                                        : colors.textSecondary.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                    fontWeight:
+                                        isToday ||
+                                        activeSpansOnDate.isNotEmpty ||
+                                        chroniclesOnDate.isNotEmpty
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                     fontSize: 12,
                                   ),
                                 ),
                               ),
 
-                              // Display Stacked Cover Deck or Finished Cover Badge or Multi-Book Indicator
+                              // Display Stacked Cover Deck or Finished Cover Badge
                               if (startingBooks.isNotEmpty)
                                 Center(
                                   child: Container(
                                     margin: const EdgeInsets.only(top: 8),
-                                    child: _buildStackedCoversDeck(startingBooks, colors),
+                                    child: _buildStackedCoversDeck(
+                                      startingBooks,
+                                      colors,
+                                    ),
                                   ),
                                 )
                               else if (endingBooks.isNotEmpty)
                                 Center(
                                   child: Container(
                                     margin: const EdgeInsets.only(top: 8),
-                                    child: _buildSingleFinishedCoverBadge(endingBooks.first, colors),
-                                  ),
-                                )
-                              else if (activeSpansOnDate.length > 1)
-                                Positioned(
-                                  bottom: 2,
-                                  left: 0,
-                                  right: 0,
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        for (int i = 0; i < (activeSpansOnDate.length > 3 ? 3 : activeSpansOnDate.length); i++)
-                                          Container(
-                                            width: 4,
-                                            height: 4,
-                                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                                            decoration: BoxDecoration(
-                                              color: activeSpansOnDate[i].color,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        if (activeSpansOnDate.length > 3)
-                                          Container(
-                                            width: 4,
-                                            height: 4,
-                                            margin: const EdgeInsets.only(left: 1),
-                                            decoration: BoxDecoration(
-                                              color: colors.streakAmber,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                      ],
+                                    child: _buildSingleFinishedCoverBadge(
+                                      endingBooks.first,
+                                      colors,
                                     ),
                                   ),
                                 ),
@@ -430,7 +480,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
   }
 
   // --- Stacked Cover Deck with +N Badge for Multiple Started Books ---
-  Widget _buildStackedCoversDeck(List<BookSpanInfo> startingBooks, ReadingAppColors colors) {
+  Widget _buildStackedCoversDeck(
+    List<BookSpanInfo> startingBooks,
+    ReadingAppColors colors,
+  ) {
     final extraCount = startingBooks.length - 1;
     final topBook = startingBooks.first;
 
@@ -458,7 +511,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 4),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 4,
+              ),
             ],
           ),
           child: ClipRRect(
@@ -498,7 +554,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
   }
 
   // --- Single Finished Cover Badge ---
-  Widget _buildSingleFinishedCoverBadge(BookSpanInfo book, ReadingAppColors colors) {
+  Widget _buildSingleFinishedCoverBadge(
+    BookSpanInfo book,
+    ReadingAppColors colors,
+  ) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -508,7 +567,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 4),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 4,
+              ),
             ],
           ),
           child: ClipRRect(
@@ -532,11 +594,7 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 1),
             ),
-            child: const Icon(
-              Icons.check,
-              size: 8,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.check, size: 8, color: Colors.white),
           ),
         ),
       ],
@@ -544,7 +602,12 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
   }
 
   // --- "Book activity on [Date]" Modal Bottom Sheet ---
-  void _showDayActivitySheet(BuildContext context, DateTime date, List<BookSpanInfo> activeSpans, ReadingAppColors colors) {
+  void _showDayActivitySheet(
+    BuildContext context,
+    DateTime date,
+    List<BookSpanInfo> activeSpans,
+    ReadingAppColors colors,
+  ) {
     final filteredSpans = activeSpans
         .where((span) => span.book?.status != ReadingStatus.abandoned)
         .toList();
@@ -560,7 +623,7 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
       builder: (context) {
         return Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.78,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -573,7 +636,11 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 18, color: colors.streakAmber),
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 18,
+                        color: colors.streakAmber,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Book activity on $formattedDate',
@@ -586,357 +653,387 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: colors.textSecondary, size: 20),
+                    icon: Icon(
+                      Icons.close,
+                      color: colors.textSecondary,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
 
-              // Activity Sub-header
-              Text(
-                'Reading Activity',
-                style: GoogleFonts.crimsonPro(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: colors.textPrimary,
-                ),
-              ),
-              Text(
-                '${filteredSpans.length} book${filteredSpans.length == 1 ? '' : 's'} active on this day',
-                style: TextStyle(fontSize: 12, color: colors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-
-              // List of Active Book Cards
               Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: filteredSpans.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final span = filteredSpans[index];
-                    final startStr = DateFormat('d MMM yyyy').format(span.startDate);
-                    final endStr = span.isFinished
-                        ? DateFormat('d MMM yyyy').format(span.endDate)
-                        : '-';
-                    final isStartedToday = span.startDate.year == date.year &&
-                        span.startDate.month == date.month &&
-                        span.startDate.day == date.day;
-                    final isFinishedToday = span.isFinished &&
-                        span.endDate.year == date.year &&
-                        span.endDate.month == date.month &&
-                        span.endDate.day == date.day;
-
-                    int pagesReadOnThisDate = 0;
-                    if (span.book != null) {
-                      for (var entry in span.book!.journalEntries) {
-                        final local = entry.date.toLocal();
-                        if (local.year == date.year &&
-                            local.month == date.month &&
-                            local.day == date.day) {
-                          pagesReadOnThisDate += entry.pagesRead;
-                        }
-                      }
-                    }
-
-                    String caption = 'Active reading session';
-                    if (isStartedToday && isFinishedToday) {
-                      caption = 'Started and finished on this day!';
-                    } else if (isStartedToday) {
-                      caption = 'Started on this day!';
-                    } else if (isFinishedToday) {
-                      caption = 'Finished on this day!';
-                    }
-
-                    final progressPct = (span.totalPages > 0 ? (span.currentPage / span.totalPages) : 0.0).clamp(0.0, 1.0);
-
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          // Safe dismissal of modal
-                          Navigator.pop(context);
-
-                          // Intelligent routing based on format
-                          if (span.book != null) {
-                            if (span.book!.format == BookFormat.pdf && span.book!.localFilePath != null && span.book!.localFilePath!.isNotEmpty) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => PdfReaderScreen(book: span.book!)),
-                              );
-                            } else if (span.book!.format == BookFormat.epub && span.book!.localFilePath != null && span.book!.localFilePath!.isNotEmpty) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => EpubReaderScreen(book: span.book!)),
-                              );
-                            } else {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => ReaderScreen(book: span.book!)),
-                              );
-                            }
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        splashColor: colors.streakAmber.withValues(alpha: 0.1),
-                        highlightColor: colors.streakAmber.withValues(alpha: 0.05),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colors.cardBgSecondary,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: colors.borderSubtle),
-                          ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              BookCoverImage(
-                                coverUrl: span.coverUrl,
-                                title: span.bookTitle,
-                                author: span.author,
-                                width: 52,
-                                height: 78,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            span.bookTitle.toUpperCase(),
-                                            style: GoogleFonts.crimsonPro(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: colors.textPrimary,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      'by ${span.author.isEmpty ? "Author" : span.author}',
-                                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    // Format Pill & Pages Read Volume Badge
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 4,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: colors.streakAmber.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: colors.streakAmber.withValues(alpha: 0.4)),
-                                          ),
-                                          child: Text(
-                                            '${(span.book?.format.name ?? "paperback").toUpperCase()} ${_getFormatIcon(span.book?.format)}',
-                                            style: TextStyle(
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.bold,
-                                              color: colors.streakAmber,
-                                            ),
-                                          ),
-                                        ),
-                                        if (pagesReadOnThisDate > 0)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: colors.accentSage.withValues(alpha: 0.18),
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: colors.accentSage.withValues(alpha: 0.4)),
-                                            ),
-                                            child: Text(
-                                              '+$pagesReadOnThisDate pgs today',
-                                              style: TextStyle(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: colors.accentSage,
-                                              ),
-                                            ),
-                                          ),
-                                        if (isStartedToday)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue.withValues(alpha: 0.18),
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
-                                            ),
-                                            child: const Text(
-                                              '🚀 Started',
-                                              style: TextStyle(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.blueAccent,
-                                              ),
-                                            ),
-                                          ),
-                                        if (isFinishedToday)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withValues(alpha: 0.18),
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-                                            ),
-                                            child: const Text(
-                                              '🏆 Completed',
-                                              style: TextStyle(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.green,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    if (span.bookStrings.length > 1 || (span.bookStrings.isNotEmpty && span.bookStrings.first != span.bookTitle)) ...[
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 5,
-                                        runSpacing: 4,
-                                        children: span.bookStrings.map((str) {
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: colors.cardBg,
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: colors.borderSubtle),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(Icons.label_outline_rounded, size: 9, color: colors.streakAmber),
-                                                const SizedBox(width: 3),
-                                                ConstrainedBox(
-                                                  constraints: const BoxConstraints(maxWidth: 160),
-                                                  child: Text(
-                                                    str,
-                                                    style: TextStyle(
-                                                      fontSize: 9.5,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: colors.textPrimary,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Started', style: TextStyle(fontSize: 10, color: colors.textSecondary)),
-                                            Text(startStr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                                          ],
-                                        ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text('Finished', style: TextStyle(fontSize: 10, color: colors.textSecondary)),
-                                            Text(endStr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(Icons.chevron_right, color: colors.streakAmber, size: 20),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progressPct,
-                              minHeight: 5,
-                              backgroundColor: colors.borderSubtle,
-                              valueColor: AlwaysStoppedAnimation<Color>(colors.streakAmber),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Center(
-                            child: Text(
-                              caption,
-                              style: TextStyle(fontSize: 10.5, fontStyle: FontStyle.italic, color: colors.textSecondary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-            if (widget.dateBookStringsMap != null &&
-                (widget.dateBookStringsMap![DateTime(date.year, date.month, date.day)]?.isNotEmpty ?? false)) ...[
-              const SizedBox(height: 14),
-              Text(
-                'LOGGED SESSIONS & TITLES',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  color: colors.streakAmber,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: widget.dateBookStringsMap![DateTime(date.year, date.month, date.day)]!.map((entry) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colors.streakAmber.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: colors.streakAmber.withValues(alpha: 0.35)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.bookmark_outline_rounded, size: 12, color: colors.streakAmber),
-                        const SizedBox(width: 4),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (filteredSpans.isNotEmpty) ...[
+                        // Activity Sub-header
                         Text(
-                          entry,
-                          style: TextStyle(
-                            fontSize: 11,
+                          'Reading Activity',
+                          style: GoogleFonts.crimsonPro(
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: colors.textPrimary,
                           ),
                         ),
+                        Text(
+                          '${filteredSpans.length} book${filteredSpans.length == 1 ? '' : 's'} active on this day',
+                          style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // List of Active Book Cards
+                        ...filteredSpans.map(
+                          (span) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: _buildActiveSpanCard(
+                              span,
+                              date,
+                              colors,
+                              context,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                       ],
-                    ),
-                  );
-                }).toList(),
+
+                      // Figures of Destiny styled DUAL READING LOGS / DAILY CHRONICLES section
+                      CalendarBookEntriesSection(
+                        date: date,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
-        ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveSpanCard(
+    BookSpanInfo span,
+    DateTime date,
+    ReadingAppColors colors,
+    BuildContext context,
+  ) {
+    final startStr = DateFormat('d MMM yyyy').format(span.startDate);
+    final endStr = span.isFinished
+        ? DateFormat('d MMM yyyy').format(span.endDate)
+        : '-';
+    final isStartedToday = span.startDate.year == date.year &&
+        span.startDate.month == date.month &&
+        span.startDate.day == date.day;
+    final isFinishedToday = span.isFinished &&
+        span.endDate.year == date.year &&
+        span.endDate.month == date.month &&
+        span.endDate.day == date.day;
+
+    int pagesReadOnThisDate = 0;
+    if (span.book != null) {
+      for (var entry in span.book!.journalEntries) {
+        final local = entry.date.toLocal();
+        if (local.year == date.year &&
+            local.month == date.month &&
+            local.day == date.day) {
+          pagesReadOnThisDate += entry.pagesRead;
+        }
+      }
+    }
+
+    String caption = 'Active reading session';
+    if (isStartedToday && isFinishedToday) {
+      caption = 'Started and finished on this day!';
+    } else if (isStartedToday) {
+      caption = 'Started on this day!';
+    } else if (isFinishedToday) {
+      caption = 'Finished on this day!';
+    }
+
+    final progressPct = (span.totalPages > 0
+            ? (span.currentPage / span.totalPages)
+            : 0.0)
+        .clamp(0.0, 1.0);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Safe dismissal of modal
+          Navigator.pop(context);
+
+          // Intelligent routing based on format
+          if (span.book != null) {
+            if (span.book!.format == BookFormat.pdf &&
+                span.book!.localFilePath != null &&
+                span.book!.localFilePath!.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      PdfReaderScreen(book: span.book!),
+                ),
+              );
+            } else if (span.book!.format == BookFormat.epub &&
+                span.book!.localFilePath != null &&
+                span.book!.localFilePath!.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      EpubReaderScreen(book: span.book!),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ReaderScreen(book: span.book!),
+                ),
+              );
+            }
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        splashColor: colors.streakAmber.withValues(alpha: 0.1),
+        highlightColor: colors.streakAmber.withValues(
+          alpha: 0.05,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colors.cardBgSecondary,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  BookCoverImage(
+                    coverUrl: span.coverUrl,
+                    title: span.bookTitle,
+                    author: span.author,
+                    width: 52,
+                    height: 78,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                span.bookTitle.toUpperCase(),
+                                style: GoogleFonts.crimsonPro(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'by ${span.author.isEmpty ? "Author" : span.author}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Format Pill & Pages Read Volume Badge
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.streakAmber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: colors.streakAmber.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                '${(span.book?.format.name ?? "paperback").toUpperCase()} ${_getFormatIcon(span.book?.format)}',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.streakAmber,
+                                ),
+                              ),
+                            ),
+                            if (pagesReadOnThisDate > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.accentSage.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: colors.accentSage.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  '+$pagesReadOnThisDate pgs today',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.accentSage,
+                                  ),
+                                ),
+                              ),
+                            if (isStartedToday)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withValues(
+                                    alpha: 0.18,
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: Colors.blue.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '🚀 Started',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
+                              ),
+                            if (isFinishedToday)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: Colors.green.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '🏆 Completed',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Started',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  startStr,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Finished',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  endStr,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: colors.streakAmber,
+                    size: 20,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progressPct,
+                  minHeight: 5,
+                  backgroundColor: colors.borderSubtle,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colors.streakAmber,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  caption,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontStyle: FontStyle.italic,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
-  },
-);
   }
 
   String _getFormatIcon(BookFormat? format) {
@@ -958,12 +1055,33 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
   }
 }
 
+class _SpanSegment {
+  final BookSpanInfo span;
+  final int colStart;
+  final int colEnd;
+  final double startX;
+  final double endX;
+  final int subIndex;
+  int track = 0;
+
+  _SpanSegment({
+    required this.span,
+    required this.colStart,
+    required this.colEnd,
+    required this.startX,
+    required this.endX,
+    this.subIndex = 0,
+  });
+}
+
 class CalendarSpanPainter extends CustomPainter {
   final List<BookSpanInfo> spans;
   final DateTime selectedMonth;
   final int firstWeekday;
   final double cellWidth;
   final double cellHeight;
+  final bool isDark;
+  final VoidCallback? onColorExtracted;
 
   CalendarSpanPainter({
     required this.spans,
@@ -971,27 +1089,50 @@ class CalendarSpanPainter extends CustomPainter {
     required this.firstWeekday,
     required this.cellWidth,
     required this.cellHeight,
+    this.isDark = true,
+    this.onColorExtracted,
   });
+
+  Color _resolveStringColor(_SpanSegment seg) {
+    final coverColor = BookCoverColorExtractor.getColorForBook(
+      coverUrl: seg.span.coverUrl,
+      title: seg.span.bookTitle,
+      author: seg.span.author,
+      preferredColor: seg.span.color,
+      isDark: isDark,
+      onExtracted: onColorExtracted,
+    );
+
+    if (seg.subIndex > 0) {
+      final hsl = HSLColor.fromColor(coverColor);
+      final offsetHue = (hsl.hue + (seg.subIndex * 35)) % 360.0;
+      return hsl.withHue(offsetHue).toColor();
+    }
+
+    return coverColor;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final monthStart = DateTime(selectedMonth.year, selectedMonth.month, 1);
-    final daysInMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      selectedMonth.year,
+      selectedMonth.month + 1,
+      0,
+    ).day;
+
+    final Map<int, List<_SpanSegment>> rowSegments = {};
 
     for (var span in spans) {
-      final Paint linePaint = Paint()
-        ..color = span.color
-        ..strokeWidth = 3.0
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
       int startIndex = firstWeekday;
       if (span.startDate.isAfter(monthStart)) {
         startIndex = firstWeekday + (span.startDate.day - 1);
       }
 
       int endIndex = firstWeekday + daysInMonth - 1;
-      if (!span.endDate.isAfter(DateTime(selectedMonth.year, selectedMonth.month, daysInMonth))) {
+      if (!span.endDate.isAfter(
+        DateTime(selectedMonth.year, selectedMonth.month, daysInMonth),
+      )) {
         endIndex = firstWeekday + (span.endDate.day - 1);
       }
 
@@ -1002,26 +1143,105 @@ class CalendarSpanPainter extends CustomPainter {
       int endRow = endIndex ~/ 7;
       int endCol = endIndex % 7;
 
-      if (startRow == endRow) {
-        double startX = (startCol + 0.5) * cellWidth;
-        double endX = (endCol + 0.5) * cellWidth;
-        double y = (startRow + 0.5) * cellHeight + 4;
-        canvas.drawLine(Offset(startX, y), Offset(endX, y), linePaint);
-      } else {
-        for (int r = startRow; r <= endRow; r++) {
-          double y = (r + 0.5) * cellHeight + 4;
-          if (r == startRow) {
-            double startX = (startCol + 0.5) * cellWidth;
-            double endX = size.width;
-            canvas.drawLine(Offset(startX, y), Offset(endX, y), linePaint);
-          } else if (r == endRow) {
-            double startX = 0;
-            double endX = (endCol + 0.5) * cellWidth;
-            canvas.drawLine(Offset(startX, y), Offset(endX, y), linePaint);
-          } else {
-            canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
+      final int subCount = math.max(
+        1,
+        math.max(
+          span.stringEntries?.length ?? 0,
+          span.bookEntries?.length ?? 0,
+        ),
+      );
+
+      for (int r = startRow; r <= endRow; r++) {
+        int colStart;
+        int colEnd;
+        double startX;
+        double endX;
+
+        if (startRow == endRow) {
+          colStart = startCol;
+          colEnd = endCol;
+          startX = (startCol + 0.5) * cellWidth;
+          endX = (endCol + 0.5) * cellWidth;
+        } else if (r == startRow) {
+          colStart = startCol;
+          colEnd = 6;
+          startX = (startCol + 0.5) * cellWidth;
+          endX = size.width;
+        } else if (r == endRow) {
+          colStart = 0;
+          colEnd = endCol;
+          startX = 0.0;
+          endX = (endCol + 0.5) * cellWidth;
+        } else {
+          colStart = 0;
+          colEnd = 6;
+          startX = 0.0;
+          endX = size.width;
+        }
+
+        // Avoid drawing zero-length segments (which would render as tiny round dots)
+        if ((endX - startX).abs() < 1.0) continue;
+
+        for (int s = 0; s < subCount; s++) {
+          rowSegments.putIfAbsent(r, () => []).add(
+            _SpanSegment(
+              span: span,
+              colStart: colStart,
+              colEnd: colEnd,
+              startX: startX,
+              endX: endX,
+              subIndex: s,
+            ),
+          );
+        }
+      }
+    }
+
+    for (final entry in rowSegments.entries) {
+      final int r = entry.key;
+      final List<_SpanSegment> segments = entry.value;
+
+      segments.sort((a, b) {
+        final cmp = a.colStart.compareTo(b.colStart);
+        if (cmp != 0) return cmp;
+        return a.colEnd.compareTo(b.colEnd);
+      });
+
+      final List<int> trackEndCol = [];
+      for (final seg in segments) {
+        int assignedTrack = -1;
+        for (int t = 0; t < trackEndCol.length; t++) {
+          if (trackEndCol[t] < seg.colStart) {
+            assignedTrack = t;
+            trackEndCol[t] = seg.colEnd;
+            break;
           }
         }
+        if (assignedTrack == -1) {
+          assignedTrack = trackEndCol.length;
+          trackEndCol.add(seg.colEnd);
+        }
+        seg.track = assignedTrack;
+      }
+
+      final int totalTracks = trackEndCol.length;
+      const double spacing = 4.8;
+
+      for (final seg in segments) {
+        final double offsetY = totalTracks > 1
+            ? (seg.track - (totalTracks - 1) / 2.0) * spacing
+            : 0.0;
+        final double y = (r + 0.5) * cellHeight + 4.0 + offsetY;
+
+        final Color stringColor = _resolveStringColor(seg);
+
+        final Paint linePaint = Paint()
+          ..color = stringColor
+          ..strokeWidth = 2.4
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+
+        canvas.drawLine(Offset(seg.startX, y), Offset(seg.endX, y), linePaint);
       }
     }
   }
@@ -1030,6 +1250,10 @@ class CalendarSpanPainter extends CustomPainter {
   bool shouldRepaint(covariant CalendarSpanPainter oldDelegate) {
     return oldDelegate.spans != spans ||
         oldDelegate.selectedMonth != selectedMonth ||
-        oldDelegate.firstWeekday != firstWeekday;
+        oldDelegate.firstWeekday != firstWeekday ||
+        oldDelegate.isDark != isDark ||
+        oldDelegate.cellWidth != cellWidth ||
+        oldDelegate.cellHeight != cellHeight;
   }
 }
+
