@@ -621,10 +621,8 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen>
                   // 3. Tab Bar (Details | Quotes)
                   TabBar(
                     controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 28.0),
-                    indicatorSize: TabBarIndicatorSize.label,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    indicatorSize: TabBarIndicatorSize.tab,
                     indicatorColor: colors.streakAmber,
                     labelColor: colors.streakAmber,
                     unselectedLabelColor: colors.textSecondary,
