@@ -242,7 +242,9 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
     final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
-    final displaySpans = widget.bookSpans;
+    final displaySpans = widget.bookSpans
+        .where((span) => span.book?.status != ReadingStatus.abandoned)
+        .toList();
 
     final monthSpans = displaySpans.where((span) {
       return !span.endDate.isBefore(monthStart) && !span.startDate.isAfter(monthEnd);
@@ -505,6 +507,9 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
 
   // --- "Book activity on [Date]" Modal Bottom Sheet ---
   void _showDayActivitySheet(BuildContext context, DateTime date, List<BookSpanInfo> activeSpans, ReadingAppColors colors) {
+    final filteredSpans = activeSpans
+        .where((span) => span.book?.status != ReadingStatus.abandoned)
+        .toList();
     final formattedDate = DateFormat('d MMM yyyy').format(date);
 
     showModalBottomSheet(
@@ -560,7 +565,7 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
                 ),
               ),
               Text(
-                '${activeSpans.length} book${activeSpans.length == 1 ? '' : 's'} active on this day',
+                '${filteredSpans.length} book${filteredSpans.length == 1 ? '' : 's'} active on this day',
                 style: TextStyle(fontSize: 12, color: colors.textSecondary),
               ),
               const SizedBox(height: 16),
@@ -569,10 +574,10 @@ class _DualViewReadingCalendarState extends State<DualViewReadingCalendar> {
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: activeSpans.length,
+                  itemCount: filteredSpans.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final span = activeSpans[index];
+                    final span = filteredSpans[index];
                     final startStr = DateFormat('d MMM yyyy').format(span.startDate);
                     final endStr = span.isFinished
                         ? DateFormat('d MMM yyyy').format(span.endDate)

@@ -454,6 +454,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     int colorIdx = 0;
     for (var b in books) {
+      // Abandoned books won't show on dual reading calendar spans or cover decks
+      if (b.status == ReadingStatus.abandoned) {
+        continue;
+      }
+
       if (b.startDate != null) {
         final start = b.startDate!.toLocal();
         final isCompleted = b.status == ReadingStatus.finished || b.finishDate != null;
