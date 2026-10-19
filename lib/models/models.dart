@@ -5,5 +5,6 @@ export 'bookshelf_config.dart';
 export 'enums.dart';
 export 'journal_entry.dart';
 export 'quote_annotation.dart';
+export 'reading_calendar_entry.dart';
 export 'story_codex.dart';
 export 'user_profile.dart';
