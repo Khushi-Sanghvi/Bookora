@@ -340,5 +340,40 @@ void main() {
         expect(codex.worldbuildingTags.contains('Cybernetic Systems'), isFalse);
       });
     });
+
+    test('autoFetchCharactersOnline resolves exact authentic leads for God of Ruin', () async {
+      final godOfRuin = Book(
+        id: 'b_gor',
+        title: 'God of Ruin',
+        author: 'Rina Kent',
+        coverUrl: '',
+        totalPages: 450,
+      );
+
+      final characters = await StoryCodexService.autoFetchCharactersOnline(godOfRuin);
+      expect(characters.isNotEmpty, isTrue);
+      expect(characters.any((c) => c.name == 'Landon King'), isTrue);
+      expect(characters.any((c) => c.name == 'Mia Sokolov'), isTrue);
+      expect(characters.any((c) => c.name.toLowerCase() == 'genius artist'), isFalse);
+      expect(characters.any((c) => c.name.toLowerCase().contains('rina') || c.name.toLowerCase().contains('kent')), isFalse);
+    });
+
+    test('lead regex strictly rejects lowercase occupation phrases like genius artist', () {
+      final candidates = StoryCodexEngine.extractCandidateCharacters(
+        synopsis: 'Landon King is a genius artist, a posh rich boy, and my worst nightmare. '
+            'Mia Sokolov is a silent prodigy who knows his darkest secrets.',
+        author: 'Rina Kent',
+        title: 'God of Ruin',
+        genres: ['Dark Romance', 'College'],
+      );
+
+      final names = candidates.map((c) => c.name).toList();
+      expect(names, contains('Landon King'));
+      expect(names, contains('Mia Sokolov'));
+      expect(names.contains('genius artist'), isFalse);
+      expect(names.any((n) => n.toLowerCase() == 'genius artist'), isFalse);
+      expect(names.any((n) => n.toLowerCase() == 'posh rich'), isFalse);
+    });
   });
 }
+

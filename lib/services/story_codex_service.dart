@@ -108,6 +108,162 @@ class StoryCodexService {
   /// Ergonomic alias for getCodexForBook
   static Future<StoryCodex> enrichCodex(Book book) => getCodexForBook(book);
 
+  /// Explicitly auto-fetches characters online for [book] across multi-tier APIs:
+  /// 1. Handcrafted literature database
+  /// 2. Open Library Works & Character Endpoints
+  /// 3. Google Books Volume Metadata
+  /// 4. Wikipedia REST Summary / Search
+  /// Parses into CodexCharacter models while rigorously filtering authors and duplicates.
+  static Future<List<CodexCharacter>> autoFetchCharactersOnline(Book book) async {
+    // 1. Check curated literature database first for 100% verified accuracy
+    final curated = StoryCodexEngine.getCuratedCharactersForBook(
+      title: book.title,
+      author: book.author,
+    );
+    if (curated.isNotEmpty) {
+      return curated;
+    }
+
+    final rawPeople = <String>[];
+    String fetchedSynopsis = book.description;
+
+    // 2. Query Open Library
+    try {
+      final cleanTitle = Uri.encodeComponent(book.title.trim());
+      final cleanAuthor = Uri.encodeComponent(book.author.trim());
+      final olUrl = Uri.parse(
+        'https://openlibrary.org/search.json?title=$cleanTitle&author=$cleanAuthor&fields=key,characters,subject_people,person&limit=1',
+      );
+      final olRes = await _httpClient.get(
+        olUrl,
+        headers: {'User-Agent': 'Bookora-Codex/2.0 (Mobile App; Flutter)'},
+      ).timeout(const Duration(seconds: 4));
+
+      if (olRes.statusCode == 200) {
+        final decoded = jsonDecode(olRes.body) as Map<String, dynamic>?;
+        final docs = decoded?['docs'] as List<dynamic>?;
+        if (docs != null && docs.isNotEmpty) {
+          final first = docs.first as Map<String, dynamic>;
+          if (first['characters'] is List) {
+            rawPeople.addAll((first['characters'] as List).map((e) => e.toString()));
+          }
+          if (first['subject_people'] is List) {
+            rawPeople.addAll((first['subject_people'] as List).map((e) => e.toString()));
+          }
+          if (first['person'] is List) {
+            rawPeople.addAll((first['person'] as List).map((e) => e.toString()));
+          }
+          final workKey = first['key']?.toString();
+          if (workKey != null && workKey.startsWith('/works/')) {
+            try {
+              final workRes = await _httpClient.get(
+                Uri.parse('https://openlibrary.org$workKey.json'),
+                headers: {'User-Agent': 'Bookora-Codex/2.0 (Mobile App; Flutter)'},
+              ).timeout(const Duration(seconds: 2));
+              if (workRes.statusCode == 200) {
+                final workData = jsonDecode(workRes.body) as Map<String, dynamic>?;
+                if (workData?['characters'] is List) {
+                  rawPeople.addAll((workData!['characters'] as List).map((e) => e.toString()));
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Query Google Books
+    try {
+      final cleanTitle = Uri.encodeComponent(book.title.trim());
+      final cleanAuthor = Uri.encodeComponent(book.author.trim());
+      final gbUrl = Uri.parse(
+        'https://www.googleapis.com/books/v1/volumes?q=intitle:$cleanTitle+inauthor:$cleanAuthor&maxResults=1',
+      );
+      final gbRes = await _httpClient.get(gbUrl).timeout(const Duration(seconds: 4));
+      if (gbRes.statusCode == 200) {
+        final gbData = jsonDecode(gbRes.body) as Map<String, dynamic>?;
+        final items = gbData?['items'] as List<dynamic>?;
+        if (items != null && items.isNotEmpty) {
+          final volInfo = items.first['volumeInfo'] as Map<String, dynamic>?;
+          final gbDesc = volInfo?['description']?.toString() ?? '';
+          if (gbDesc.length > fetchedSynopsis.length && !BookMetadataSanitizer.isTruncatedSynopsis(gbDesc)) {
+            fetchedSynopsis = gbDesc;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Query Wikipedia REST Summary API
+    try {
+      final wikiSlug = Uri.encodeComponent(book.title.trim().replaceAll(' ', '_'));
+      final wikiUrl = Uri.parse('https://en.wikipedia.org/api/rest_v1/page/summary/$wikiSlug');
+      final wikiRes = await _httpClient.get(
+        wikiUrl,
+        headers: {'User-Agent': 'Bookora-Codex/2.0 (Mobile App; Flutter)'},
+      ).timeout(const Duration(seconds: 3));
+      if (wikiRes.statusCode == 200) {
+        final wikiData = jsonDecode(wikiRes.body) as Map<String, dynamic>?;
+        final extract = wikiData?['extract']?.toString();
+        if (extract != null && extract.length > 50 && !BookMetadataSanitizer.isTruncatedSynopsis(extract)) {
+          if (fetchedSynopsis.isEmpty || BookMetadataSanitizer.isTruncatedSynopsis(fetchedSynopsis)) {
+            fetchedSynopsis = extract;
+          } else {
+            fetchedSynopsis = '$fetchedSynopsis\n\n$extract';
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 5. Extract and parse characters using NLP extractor
+    final characters = <CodexCharacter>[];
+    final seen = <String>{};
+
+    for (final person in rawPeople) {
+      final clean = person.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
+      if (clean.length > 2 &&
+          RegExp(r'^[A-Z][a-z]').hasMatch(clean) &&
+          !StoryCodexEngine.isAuthorOrNonCharacter(clean, book.author, book.title, fetchedSynopsis) &&
+          !seen.contains(clean.toLowerCase())) {
+        seen.add(clean.toLowerCase());
+        final isFirst = characters.isEmpty;
+        final role = isFirst ? 'Protagonist / Lead' : (characters.length == 1 ? 'Central Figure / Counterpart' : 'Supporting Figure');
+        characters.add(CodexCharacter(
+          name: clean,
+          role: role,
+          archetype: _inferCharacterArchetype(clean, fetchedSynopsis, book.genres),
+          description: _inferCharacterDescription(clean, fetchedSynopsis, role),
+        ));
+      }
+      if (characters.length >= 3) break;
+    }
+
+    if (characters.length < 2) {
+      final fromSynopsis = StoryCodexEngine.extractCandidateCharacters(
+        synopsis: fetchedSynopsis,
+        author: book.author,
+        title: book.title,
+        genres: book.genres,
+      );
+      for (final c in fromSynopsis) {
+        if (!seen.contains(c.name.toLowerCase())) {
+          seen.add(c.name.toLowerCase());
+          characters.add(c);
+        }
+        if (characters.length >= 3) break;
+      }
+    }
+
+    // 6. Fallback if online APIs yield no parseable character names
+    if (characters.isEmpty) {
+      characters.addAll(StoryCodexEngine.generateCodex(
+        book,
+        fetchedSynopsis: fetchedSynopsis,
+      ).characters);
+    }
+
+    return characters;
+  }
+
   /// Main entry point: returns cached codex or enriches dynamically across tiers
   static Future<StoryCodex> getCodexForBook(Book book) async {
     // Check cache first

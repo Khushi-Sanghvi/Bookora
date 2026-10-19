@@ -10,6 +10,7 @@ import '../repositories/book_repository.dart';
 import '../services/story_codex_engine.dart';
 import '../services/story_codex_service.dart';
 import 'bookora_floral_dialog.dart';
+import 'bookora_snack_bar.dart';
 
 class StoryCodexContentView extends StatefulWidget {
   final Book book;
@@ -37,6 +38,7 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
   String _synopsis = '';
   bool _isLoadingSynopsis = false;
   bool _isSynopsisExpanded = false;
+  bool _isAutoFetching = false;
 
   @override
   void initState() {
@@ -170,6 +172,89 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
     } catch (_) {
       if (mounted) {
         setState(() => _isLoadingSynopsis = false);
+      }
+    }
+  }
+
+  Future<void> _autoFetchCharactersOnline() async {
+    if (_isAutoFetching) return;
+    setState(() => _isAutoFetching = true);
+
+    try {
+      final fetched = await StoryCodexService.autoFetchCharactersOnline(widget.book);
+      if (!mounted) return;
+
+      if (fetched.isEmpty) {
+        BookoraSnackBar.show(
+          context,
+          type: BookoraSnackBarType.info,
+          title: 'Could not retrieve character codex online.',
+          subtitle: 'You can still add characters manually.',
+        );
+        return;
+      }
+
+      // 1. Clean up any invalid or lowercase non-character entries (such as "genius artist")
+      final cleanedExisting = _codex.characters.where((c) {
+        final name = c.name.trim();
+        return name.isNotEmpty &&
+            RegExp(r'^[A-Z]').hasMatch(name) &&
+            !StoryCodexEngine.isAuthorOrNonCharacter(name, widget.book.author, widget.book.title);
+      }).toList();
+
+      final existingNames = cleanedExisting
+          .map((c) => c.name.toLowerCase().trim())
+          .toSet();
+
+      // 2. Deduplication against existing populated character list
+      final newCharacters = <CodexCharacter>[];
+      for (final char in fetched) {
+        final cleanName = char.name.toLowerCase().trim();
+        if (!existingNames.contains(cleanName) &&
+            !StoryCodexEngine.isAuthorOrNonCharacter(
+              char.name,
+              widget.book.author,
+              widget.book.title,
+            )) {
+          existingNames.add(cleanName);
+          newCharacters.add(char);
+        }
+      }
+
+      if (newCharacters.isNotEmpty || cleanedExisting.length != _codex.characters.length) {
+        final updatedCharacters = [...cleanedExisting, ...newCharacters];
+        setState(() {
+          _codex = _codex.copyWith(characters: updatedCharacters);
+        });
+        await StoryCodexService.saveCodexToCache(_codex);
+        if (mounted) {
+          BookoraSnackBar.show(
+            context,
+            type: BookoraSnackBarType.success,
+            title: 'Discovered ${newCharacters.isNotEmpty ? newCharacters.length : updatedCharacters.length} characters from the narrative archives.',
+          );
+        }
+      } else {
+        if (mounted) {
+          BookoraSnackBar.show(
+            context,
+            type: BookoraSnackBarType.info,
+            title: 'All discovered characters are already in your Figures of Destiny.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        BookoraSnackBar.show(
+          context,
+          type: BookoraSnackBarType.error,
+          title: 'Could not retrieve character codex online.',
+          subtitle: 'You can still add characters manually.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAutoFetching = false);
       }
     }
   }
@@ -651,37 +736,85 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: () => _showCharacterDialog(context),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accentGold.withValues(alpha: 0.15),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      onTap: _isAutoFetching ? null : _autoFetchCharactersOnline,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: accentGold.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add_rounded, size: 14, color: accentGold),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Add Character',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: accentGold,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentGold.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: accentGold.withValues(alpha: 0.35),
                           ),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_isAutoFetching)
+                              SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(accentGold),
+                                ),
+                              )
+                            else
+                              Icon(Icons.auto_awesome, size: 13, color: accentGold),
+                            const SizedBox(width: 4),
+                            Text(
+                              _isAutoFetching ? 'Fetching...' : 'Auto-Fetch',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: accentGold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => _showCharacterDialog(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentGold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: accentGold.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_rounded, size: 14, color: accentGold),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Add Character',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: accentGold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -721,27 +854,65 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
-                    TextButton.icon(
-                      onPressed: () => _showCharacterDialog(context),
-                      icon: Icon(Icons.add_rounded, size: 15, color: accentGold),
-                      label: Text(
-                        'Add First Character',
-                        style: TextStyle(
-                          color: accentGold,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11.5,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _isAutoFetching ? null : _autoFetchCharactersOnline,
+                          icon: _isAutoFetching
+                              ? SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(accentGold),
+                                  ),
+                                )
+                              : Icon(Icons.auto_awesome, size: 15, color: accentGold),
+                          label: Text(
+                            _isAutoFetching ? 'Fetching Online...' : 'Auto-Fetch Online',
+                            style: TextStyle(
+                              color: accentGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: accentGold.withValues(alpha: 0.18),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor: accentGold.withValues(alpha: 0.12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
+                        TextButton.icon(
+                          onPressed: () => _showCharacterDialog(context),
+                          icon: Icon(Icons.add_rounded, size: 15, color: accentGold),
+                          label: Text(
+                            'Add Manually',
+                            style: TextStyle(
+                              color: accentGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: accentGold.withValues(alpha: 0.12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),

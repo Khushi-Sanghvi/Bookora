@@ -1071,6 +1071,74 @@ class StoryCodexEngine {
     final tLower = title.toLowerCase();
     final aLower = author.toLowerCase();
 
+    // Rina Kent: Legacy of Gods & Royal Elite
+    if (tLower.contains('god of ruin')) {
+      return const [
+        CodexCharacter(
+          name: 'Landon King',
+          role: 'Male Lead / The Sculptor',
+          archetype: 'The Obsessive Devil',
+          description: 'A brilliant, aristocratic sculptor whose charming facade masks a merciless, dark obsession with Mia.',
+          quote: 'I\'m a monster in an expensive suit, Little Muse.',
+        ),
+        CodexCharacter(
+          name: 'Mia Sokolov',
+          role: 'Female Lead / Pianist',
+          archetype: 'The Resilient Muse',
+          description: 'A gentle, mute piano prodigy who witnessed Landon\'s darkest secret and refuses to break beneath his games.',
+        ),
+      ];
+    }
+    if (tLower.contains('god of malice')) {
+      return const [
+        CodexCharacter(
+          name: 'Killian Carson',
+          role: 'Male Lead / Obsessive Villain',
+          archetype: 'The Charming Sociopath',
+          description: 'A brilliant, cold-blooded medical student who hides a merciless devil beneath aristocratic refinement.',
+          quote: 'I run, but the thing about monsters? They always chase.',
+        ),
+        CodexCharacter(
+          name: 'Glyndon King',
+          role: 'Female Lead / Artist',
+          archetype: 'The Grieving Heiress',
+          description: 'An introverted art student carrying deep emotional wounds who inadvertently awakens Killian\'s dark obsession.',
+        ),
+      ];
+    }
+    if (tLower.contains('god of wrath')) {
+      return const [
+        CodexCharacter(
+          name: 'Jeremy Volkov',
+          role: 'Male Lead / Russian Mafia Heir',
+          archetype: 'The Lethal Enforcer',
+          description: 'The terrifying, silent leader of the Heathens who commands obedience and claims Cecily as his own.',
+        ),
+        CodexCharacter(
+          name: 'Cecily Knight',
+          role: 'Female Lead / Secret Rebel',
+          archetype: 'The Defiant Heiress',
+          description: 'A seemingly pristine peer\'s daughter trapped in Jeremy\'s dangerous, forbidden web.',
+        ),
+      ];
+    }
+    if (tLower.contains('god of war')) {
+      return const [
+        CodexCharacter(
+          name: 'Eli King',
+          role: 'Male Lead / Cold Mastermind',
+          archetype: 'The Unforgiving Heir',
+          description: 'The calculated eldest King brother whose terrifying control fractures when confronted with Ava.',
+        ),
+        CodexCharacter(
+          name: 'Ava Nash',
+          role: 'Female Lead / The Wildfire',
+          archetype: 'The Fierce Survivor',
+          description: 'A rebellious, untamed fighter who defies Eli\'s commands at every turn.',
+        ),
+      ];
+    }
+
     // Ana Huang: Twisted Series & Kings of Sin
     if (tLower.contains('twisted lies')) {
       return const [
@@ -1792,22 +1860,26 @@ class StoryCodexEngine {
 
     final titleLower = title.trim().toLowerCase();
 
-    // 1. Lead Introduction Patterns (Captures both single names and two-word names)
+    // 1. Lead Introduction Patterns (Only extract group indices that represent character names)
     final leadPatterns = [
-      RegExp(r'\b([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+(?:is|was)\s+(?:a|an|the)\s+([a-zA-Z\s]{3,40})'),
-      RegExp(r'When\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+([a-zA-Z\s]{4,35}),'),
-      RegExp(r'Told\s+(?:from\s+the\s+perspective\s+of|alternating\s+between)\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+and\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)'),
-      RegExp(r'For\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+'),
-      RegExp(r'Enter\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+(?:a|an)\s+'),
+      (RegExp(r'\b([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+(?:is|was)\s+(?:a|an|the)\s+([a-zA-Z\s]{3,40})'), const [1]),
+      (RegExp(r'When\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+([a-zA-Z\s]{4,35}),'), const [1]),
+      (RegExp(r'Told\s+(?:from\s+the\s+perspective\s+of|alternating\s+between)\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+and\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)'), const [1, 2]),
+      (RegExp(r'For\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+'), const [1]),
+      (RegExp(r'Enter\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+(?:a|an)\s+'), const [1]),
     ];
 
     final sentences = synopsis.split(RegExp(r'(?<=[.!?])\s+'));
 
-    for (final pattern in leadPatterns) {
+    for (final entry in leadPatterns) {
+      final pattern = entry.$1;
+      final targetGroups = entry.$2;
       for (final match in pattern.allMatches(synopsis)) {
-        for (int i = 1; i <= match.groupCount; i++) {
-          final cand = match.group(i)?.trim();
+        for (final groupIdx in targetGroups) {
+          final cand = match.group(groupIdx)?.trim();
           if (cand == null || cand.length < 3) continue;
+          // Must be properly capitalized proper noun (e.g. "Landon King", NOT "genius artist")
+          if (!RegExp(r'^[A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})*$').hasMatch(cand)) continue;
           if (isAuthorOrNonCharacter(cand, author, title, synopsis)) continue;
           final candLower = cand.toLowerCase();
           if (seen.contains(candLower)) continue;
