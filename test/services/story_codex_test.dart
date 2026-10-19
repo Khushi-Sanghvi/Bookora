@@ -266,5 +266,79 @@ void main() {
         expect(char.description!.trim().isNotEmpty, isTrue);
       }
     });
+
+    test('curated literature resolves exact authentic leads and descriptions', () {
+      final twistedLies = StoryCodexEngine.generateCodex(Book(
+        id: 'b_tl',
+        title: 'Twisted Lies',
+        author: 'Ana Huang',
+        coverUrl: '',
+        totalPages: 480,
+      ));
+      expect(twistedLies.characters.any((c) => c.name == 'Christian Harper'), isTrue);
+      expect(twistedLies.characters.any((c) => c.name == 'Stella Alonso'), isTrue);
+      expect(twistedLies.characters.firstWhere((c) => c.name == 'Christian Harper').description, contains('cybersecurity'));
+
+      final midnightLib = StoryCodexEngine.generateCodex(Book(
+        id: 'b_ml',
+        title: 'The Midnight Library',
+        author: 'Matt Haig',
+        coverUrl: '',
+        totalPages: 304,
+      ));
+      expect(midnightLib.characters.any((c) => c.name == 'Nora Seed'), isTrue);
+      expect(midnightLib.characters.any((c) => c.name == 'Mrs. Elm'), isTrue);
+      expect(midnightLib.characters.any((c) => c.name.contains('Matt') || c.name.contains('Haig')), isFalse);
+      expect(midnightLib.characters.any((c) => c.name == 'The Midnight' || c.name == 'Library'), isFalse);
+
+      final daisyJones = StoryCodexEngine.generateCodex(Book(
+        id: 'b_dj',
+        title: 'Daisy Jones & The Six',
+        author: 'Taylor Jenkins Reid',
+        coverUrl: '',
+        totalPages: 368,
+      ));
+      expect(daisyJones.characters.any((c) => c.name == 'Daisy Jones'), isTrue);
+      expect(daisyJones.characters.any((c) => c.name == 'Billy Dunne'), isTrue);
+      expect(daisyJones.characters.any((c) => c.name.contains('Taylor') || c.name.contains('Reid')), isFalse);
+
+      final loveBrain = StoryCodexEngine.generateCodex(Book(
+        id: 'b_lob',
+        title: 'Love on the Brain',
+        author: 'Ali Hazelwood',
+        coverUrl: '',
+        totalPages: 360,
+      ));
+      expect(loveBrain.characters.any((c) => c.name == 'Bee Königswasser'), isTrue);
+      expect(loveBrain.characters.any((c) => c.name == 'Levi Ward'), isTrue);
+
+      final harryPotter = StoryCodexEngine.generateCodex(Book(
+        id: 'b_hp',
+        title: 'Harry Potter and the Sorcerer\'s Stone',
+        author: 'J.K. Rowling',
+        coverUrl: '',
+        totalPages: 309,
+      ));
+      expect(harryPotter.characters.any((c) => c.name == 'Harry Potter'), isTrue);
+      expect(harryPotter.characters.any((c) => c.name == 'Hermione Granger'), isTrue);
+      expect(harryPotter.characters.any((c) => c.name == 'Ron Weasley'), isTrue);
+    });
+
+    test('contemporary books do not receive spurious AI or Cybernetic tropes', () {
+      final contemporaryCodex = StoryCodexService.getCodexForBook(Book(
+        id: 'b_contemp',
+        title: 'Beach Read',
+        author: 'Emily Henry',
+        coverUrl: '',
+        totalPages: 360,
+        description: 'Two writers spend the summer challenging each other, sharing daily conversations and healing old family pain.',
+        genres: ['Romance', 'Contemporary'],
+      ));
+
+      contemporaryCodex.then((codex) {
+        expect(codex.tropes.contains('AI Awakening'), isFalse);
+        expect(codex.worldbuildingTags.contains('Cybernetic Systems'), isFalse);
+      });
+    });
   });
 }

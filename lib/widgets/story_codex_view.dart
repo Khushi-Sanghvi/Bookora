@@ -62,12 +62,17 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
   }
 
   Future<void> _loadEnrichedCodexAsync() async {
-    if (widget.codex != null) return;
+    if (widget.codex != null && widget.codex!.characters.isNotEmpty) return;
     try {
       final enriched = await StoryCodexService.getCodexForBook(widget.book);
       if (mounted) {
         setState(() {
-          _codex = enriched;
+          final resolvedChars = enriched.characters.isNotEmpty
+              ? enriched.characters
+              : (_codex.characters.isNotEmpty
+                  ? _codex.characters
+                  : StoryCodexEngine.generateCodex(widget.book).characters);
+          _codex = enriched.copyWith(characters: resolvedChars);
           if (enriched.synopsis.isNotEmpty &&
               !BookMetadataSanitizer.isTruncatedSynopsis(enriched.synopsis)) {
             _synopsis = enriched.synopsis;
@@ -140,13 +145,16 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
             title: widget.book.title,
             genres: widget.book.genres,
           );
+          final finalChars = freshChars.isNotEmpty
+              ? freshChars
+              : (_codex.characters.isNotEmpty
+                  ? _codex.characters
+                  : StoryCodexEngine.generateCodex(widget.book, fetchedSynopsis: cleanFetched).characters);
           setState(() {
             _synopsis = cleanFetched;
             _codex = _codex.copyWith(
               synopsis: cleanFetched,
-              characters: (_codex.characters.isEmpty && freshChars.isNotEmpty)
-                  ? freshChars
-                  : _codex.characters,
+              characters: finalChars,
             );
             _isLoadingSynopsis = false;
           });

@@ -24,12 +24,20 @@ class StoryCodexService {
     try {
       final raw = CacheService().get<dynamic>('story_codex_$bookId');
       if (raw == null) return null;
-      if (raw is StoryCodex) return raw;
+      StoryCodex? codex;
+      if (raw is StoryCodex) codex = raw;
       if (raw is Map<String, dynamic>) {
-        return StoryCodex.fromJson(raw);
+        codex = StoryCodex.fromJson(raw);
       }
       if (raw is Map) {
-        return StoryCodex.fromJson(Map<String, dynamic>.from(raw));
+        codex = StoryCodex.fromJson(Map<String, dynamic>.from(raw));
+      }
+      if (codex != null) {
+        if (codex.characters.isEmpty) {
+          // Stale cache from before character enhancement
+          return null;
+        }
+        return codex;
       }
     } catch (_) {
       CacheService().remove('story_codex_$bookId');
@@ -65,6 +73,10 @@ class StoryCodexService {
         final decoded = jsonDecode(content);
         if (decoded is Map<String, dynamic>) {
           final codex = StoryCodex.fromJson(decoded);
+          if (codex.characters.isEmpty) {
+            // Stale cache without characters: bypass so fresh characters resolve
+            return null;
+          }
           // Re-populate in-memory cache
           CacheService().set('story_codex_$bookId', codex.toMap(), ttl: const Duration(days: 30));
           return codex;
@@ -236,6 +248,25 @@ class StoryCodexService {
       }
     } catch (e) {
       debugPrint('Google Books metadata note: $e');
+    }
+
+    // --- Tier 2.5: Wikipedia Summary API (For real character introductions) ---
+    if (fetchedSynopsis.isEmpty || BookMetadataSanitizer.isTruncatedSynopsis(fetchedSynopsis)) {
+      try {
+        final wikiSlug = Uri.encodeComponent(book.title.trim().replaceAll(' ', '_'));
+        final wikiUrl = Uri.parse('https://en.wikipedia.org/api/rest_v1/page/summary/$wikiSlug');
+        final wikiRes = await _httpClient.get(
+          wikiUrl,
+          headers: {'User-Agent': 'Bookora-Codex/2.0 (Mobile App; Flutter)'},
+        ).timeout(const Duration(seconds: 3));
+        if (wikiRes.statusCode == 200) {
+          final wikiData = jsonDecode(wikiRes.body) as Map<String, dynamic>?;
+          final extract = wikiData?['extract']?.toString();
+          if (extract != null && extract.length > 50 && !BookMetadataSanitizer.isTruncatedSynopsis(extract)) {
+            fetchedSynopsis = extract;
+          }
+        }
+      } catch (_) {}
     }
 
     // --- Tier 3: Smart Algorithmic Synopsis & NLP Heuristic Extractor ---
@@ -423,7 +454,9 @@ class StoryCodexService {
     if (combinedText.contains('space opera')) tags.add('Space Opera');
     if (combinedText.contains('magic') || combinedText.contains('spell')) tags.add('Arcane Magic');
     if (combinedText.contains('dark academia')) tags.add('Dark Academia');
-    if (combinedText.contains('cyberpunk') || combinedText.contains('ai')) tags.add('Cybernetic Systems');
+    if (combinedText.contains('cyberpunk') || RegExp(r'\b(?:ai|artificial intelligence|android|cyborg)\b').hasMatch(combinedText)) {
+      tags.add('Cybernetic Systems');
+    }
     if (combinedText.contains('high fae') || combinedText.contains('court')) tags.add('Fae Royalty');
     if (combinedText.contains('dragon')) tags.add('Dragon Riders');
     if (combinedText.contains('billionaire') || combinedText.contains('empire')) tags.add('Corporate Dynasties');
@@ -476,6 +509,12 @@ class StoryCodexService {
     final characters = <CodexCharacter>[];
     final seenNames = <String>{};
 
+    // 0. Check curated literature characters first for authentic cast resolution
+    final curated = StoryCodexEngine.getCuratedCharactersForBook(title: title, author: author);
+    if (curated.isNotEmpty) {
+      return curated;
+    }
+
     // 1. Process external people & characters extracted from Open Library / Wikidata
     for (final person in externalPeople) {
       final clean = person.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
@@ -517,7 +556,21 @@ class StoryCodexService {
       if (characters.length >= 3) break;
     }
 
-    // Never output generic "Central Protagonist" or "The Counterpart"
+    // 3. Fallback to specialized genre archetype leads (never author, never empty)
+    if (characters.isEmpty) {
+      characters.addAll(StoryCodexEngine.generateCodex(
+        Book(
+          id: 'temp_lookup',
+          title: title,
+          author: author,
+          genres: genres,
+          coverUrl: '',
+          totalPages: 0,
+        ),
+        fetchedSynopsis: synopsisText,
+      ).characters);
+    }
+
     return characters;
   }
 
@@ -623,11 +676,15 @@ class StoryCodexService {
     // Sci-Fi & Cyberpunk
     match('space opera', 'Space Opera');
     match('cybernetic', 'Cybernetic Web');
-    match('ai', 'AI Awakening');
+    if (RegExp(r'\b(?:ai|artificial intelligence|android awakening)\b').hasMatch(combinedText) && !matchedTropes.contains('AI Awakening')) {
+      matchedTropes.add('AI Awakening');
+    }
     match('galactic empire', 'Galactic Empire');
     match('time travel', 'Time Travel / Paradox');
     match('first contact', 'First Contact');
-    match('colon', 'Colony World');
+    if (RegExp(r'\b(?:colony|colonies|colonization)\b').hasMatch(combinedText) && !matchedTropes.contains('Colony World')) {
+      matchedTropes.add('Colony World');
+    }
     match('hyperion', 'Pilgrimage');
 
     // Mystery & Thriller
