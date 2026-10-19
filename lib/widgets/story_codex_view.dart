@@ -50,6 +50,12 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
     } catch (_) {
       _codex = StoryCodexEngine.generateCodex(widget.book);
     }
+    if (_codex.characters.isEmpty) {
+      final fresh = StoryCodexEngine.generateCodex(widget.book);
+      if (fresh.characters.isNotEmpty) {
+        _codex = _codex.copyWith(characters: fresh.characters);
+      }
+    }
     _synopsis = _codex.synopsis;
     _checkAndFetchSynopsis();
     _loadEnrichedCodexAsync();
@@ -84,6 +90,12 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
               StoryCodexEngine.generateCodex(widget.book);
         } catch (_) {
           _codex = StoryCodexEngine.generateCodex(widget.book);
+        }
+        if (_codex.characters.isEmpty) {
+          final fresh = StoryCodexEngine.generateCodex(widget.book);
+          if (fresh.characters.isNotEmpty) {
+            _codex = _codex.copyWith(characters: fresh.characters);
+          }
         }
         _synopsis = _codex.synopsis;
       });
@@ -122,9 +134,20 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
             fetched.trim().isNotEmpty &&
             !BookMetadataSanitizer.isTruncatedSynopsis(fetched)) {
           final cleanFetched = BookMetadataSanitizer.sanitizeSynopsis(fetched);
+          final freshChars = StoryCodexEngine.extractCandidateCharacters(
+            synopsis: cleanFetched,
+            author: widget.book.author,
+            title: widget.book.title,
+            genres: widget.book.genres,
+          );
           setState(() {
             _synopsis = cleanFetched;
-            _codex = _codex.copyWith(synopsis: cleanFetched);
+            _codex = _codex.copyWith(
+              synopsis: cleanFetched,
+              characters: (_codex.characters.isEmpty && freshChars.isNotEmpty)
+                  ? freshChars
+                  : _codex.characters,
+            );
             _isLoadingSynopsis = false;
           });
           // Heal persistence through repository

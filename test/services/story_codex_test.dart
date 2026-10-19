@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:between_world/models/book.dart';
 import 'package:between_world/models/story_codex.dart';
+import 'package:between_world/services/story_codex_engine.dart';
 import 'package:between_world/services/story_codex_service.dart';
 
 void main() {
@@ -172,6 +173,98 @@ void main() {
       expect(cached, isNotNull);
       expect(cached!.bookId, equals(book.id));
       expect(cached.hook, equals(enriched.hook));
+    });
+  });
+
+  group('StoryCodex Distinct Characters & Author Exclusion Tests', () {
+    test('different books resolve their own unique main characters', () {
+      final acotar = StoryCodexEngine.generateCodex(Book(
+        id: 'b_acotar',
+        title: 'A Court of Thorns and Roses',
+        author: 'Sarah J. Maas',
+        coverUrl: '',
+        totalPages: 419,
+      ));
+      expect(acotar.characters.any((c) => c.name.contains('Feyre')), isTrue);
+      expect(acotar.characters.any((c) => c.name.contains('Rhysand') || c.name.contains('Tamlin')), isTrue);
+
+      final fourthWing = StoryCodexEngine.generateCodex(Book(
+        id: 'b_fw',
+        title: 'Fourth Wing',
+        author: 'Rebecca Yarros',
+        coverUrl: '',
+        totalPages: 528,
+      ));
+      expect(fourthWing.characters.any((c) => c.name.contains('Violet')), isTrue);
+      expect(fourthWing.characters.any((c) => c.name.contains('Xaden')), isTrue);
+
+      final cruelPrince = StoryCodexEngine.generateCodex(Book(
+        id: 'b_cp',
+        title: 'The Cruel Prince',
+        author: 'Holly Black',
+        coverUrl: '',
+        totalPages: 370,
+      ));
+      expect(cruelPrince.characters.any((c) => c.name.contains('Jude')), isTrue);
+      expect(cruelPrince.characters.any((c) => c.name.contains('Cardan')), isTrue);
+
+      final hungerGames = StoryCodexEngine.generateCodex(Book(
+        id: 'b_hg',
+        title: 'The Hunger Games',
+        author: 'Suzanne Collins',
+        coverUrl: '',
+        totalPages: 374,
+      ));
+      expect(hungerGames.characters.any((c) => c.name.contains('Katniss')), isTrue);
+      expect(hungerGames.characters.any((c) => c.name.contains('Peeta')), isTrue);
+
+      final pride = StoryCodexEngine.generateCodex(Book(
+        id: 'b_pp',
+        title: 'Pride and Prejudice',
+        author: 'Jane Austen',
+        coverUrl: '',
+        totalPages: 432,
+      ));
+      expect(pride.characters.any((c) => c.name.contains('Elizabeth')), isTrue);
+      expect(pride.characters.any((c) => c.name.contains('Darcy')), isTrue);
+
+      // Verify that characters from one book are not cross-contaminated into another
+      expect(acotar.characters.any((c) => c.name.contains('Katniss')), isFalse);
+      expect(fourthWing.characters.any((c) => c.name.contains('Feyre')), isFalse);
+      expect(hungerGames.characters.any((c) => c.name.contains('Violet')), isFalse);
+    });
+
+    test('author names are strictly excluded from characters list', () {
+      final book = Book(
+        id: 'b_author_test',
+        title: 'Mystic Whispers',
+        author: 'Sarah J. Maas',
+        coverUrl: '',
+        totalPages: 350,
+        description: 'From #1 New York Times bestselling author Sarah J. Maas comes an epic story. '
+            'Praise from Colleen Hoover: Unforgettable! '
+            'Written by Sarah J. Maas for fans of Rebecca Yarros. '
+            'Elysia Thorne is a fierce sorceress defending her realm. '
+            'Kaelen Vance is a shadow warrior bound by honor.',
+      );
+
+      final codex = StoryCodexEngine.generateCodex(book);
+
+      // Verify author names were NOT added as characters
+      for (final char in codex.characters) {
+        final nameLower = char.name.toLowerCase();
+        expect(nameLower.contains('sarah'), isFalse, reason: 'Author name Sarah J. Maas must not be a character');
+        expect(nameLower.contains('maas'), isFalse, reason: 'Author name Sarah J. Maas must not be a character');
+        expect(nameLower.contains('hoover'), isFalse, reason: 'Blurb author Colleen Hoover must not be a character');
+        expect(nameLower.contains('yarros'), isFalse, reason: 'Promo author Rebecca Yarros must not be a character');
+      }
+
+      // Verify actual fictional characters were extracted
+      expect(codex.characters.any((c) => c.name.contains('Elysia') || c.name.contains('Kaelen')), isTrue);
+      for (final char in codex.characters) {
+        expect(char.description, isNotNull);
+        expect(char.description!.trim().isNotEmpty, isTrue);
+      }
     });
   });
 }

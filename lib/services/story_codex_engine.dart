@@ -535,12 +535,411 @@ class StoryCodexEngine {
       );
     }
 
+    // The Cruel Prince / The Folk of the Air by Holly Black
+    if (titleLower.contains('cruel prince') || titleLower.contains('folk of the air') || titleLower.contains('wicked king') || titleLower.contains('queen of nothing')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "A mortal girl raised in the treacherous High Court of Faerie must outwit immortal royals to claim her own power.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Jude was seven years old when her parents were murdered and she and her two sisters were stolen away to live in the treacherous High Court of Faerie. To win a place at the Court, she must defy Prince Cardan.",
+        setting: "Elfhame (High Court of Faerie)",
+        timePeriod: "Mythic Faerie Realm",
+        atmosphere: "Treacherous, Enchanting, Cutthroat, Seductive",
+        characters: const [
+          CodexCharacter(
+            name: "Jude Duarte",
+            role: "Female Lead / Mortal Spy",
+            archetype: "The Ruthless Defier",
+            description: "A mortal girl in Elfhame who learned that power must be taken by force, defying faerie nobility with lethal strategy and sharp blades.",
+            quote: "If I cannot be better than them, I will become so much worse.",
+          ),
+          CodexCharacter(
+            name: "Prince Cardan Greenbriar",
+            role: "Male Lead / Prince of Elfhame",
+            archetype: "The Wicked Prince",
+            description: "The youngest, most arrogant prince of Elfhame who masks his deep vulnerabilities and forbidden longing behind cruelty.",
+            quote: "Most of all, I hate you because I think of you. Often. It's disgusting, and I can't stop.",
+          ),
+          CodexCharacter(
+            name: "Madoc",
+            role: "Antagonist / Foster Father",
+            archetype: "The Bloodthirsty General",
+            description: "Fierce redcap general who murdered Jude's mortal parents yet raised her as his own lethal daughter.",
+          ),
+        ],
+        tropes: const [
+          "Enemies to Lovers",
+          "Fae Court Intrigue",
+          "Mortal in a Faerie World",
+          "Morally Grey Leads",
+          "Political Scheming",
+        ],
+        contentWarnings: const ["Violence & Bloodshed", "Bullying & Betrayal"],
+        pacing: "Fast-Paced & Tense",
+        tone: "Clever, Dark, Seductive",
+        spiceLevel: 2.5,
+        emotionalResonance: 4.4,
+        suspenseLevel: 4.8,
+      );
+    }
+
+    // From Blood and Ash by Jennifer L. Armentrout
+    if (titleLower.contains('blood and ash') || titleLower.contains('flesh and fire') || titleLower.contains('war of two queens')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "A Maiden chosen by the gods to usher in a new era is drawn to a dangerous golden-eyed guard who threatens everything she believes in.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Chosen from birth to usher in a new era, Poppy's life has never been her own. She is the Maiden, shrouded and untouched. Until Hawke enters her life.",
+        setting: "Kingdom of Solis & Atlantia",
+        timePeriod: "Fantasy Empire",
+        atmosphere: "Sensual, High-Stakes, Arcane, Passionate",
+        characters: const [
+          CodexCharacter(
+            name: "Penellaphe 'Poppy' Balfour",
+            role: "Female Lead / The Maiden",
+            archetype: "The Veiled Survivor",
+            description: "The chosen Maiden veiled and untouched, secretly training as a deadly fighter who longs to experience true freedom and passion.",
+            quote: "I would rather be hated for who I am than loved for who I am not.",
+          ),
+          CodexCharacter(
+            name: "Casteel Da'Neer (Hawke)",
+            role: "Male Lead / Atlantian Prince",
+            archetype: "The Charming Rebel Prince",
+            description: "The dangerous Atlantian prince masquerading as Poppy's guard, determined to reclaim his kingdom while falling desperately for her.",
+            quote: "You are the most breathtaking, infuriating creature I have ever laid eyes upon.",
+          ),
+          CodexCharacter(
+            name: "Kieran Contram",
+            role: "Supporting Figure",
+            archetype: "The Wolven Guardian",
+            description: "Casteel's fierce, loyal bonded wolven brother and trusted protector.",
+          ),
+        ],
+        tropes: const [
+          "Enemies to Lovers",
+          "Bodyguard Romance",
+          "Hidden Identity",
+          "Fated Connections",
+          "Vampire / Supernatural Lore",
+        ],
+        contentWarnings: const ["Explicit Romance", "Graphic Violence"],
+        pacing: "Action-Packed & Steamy",
+        tone: "Romantic, Intense, Mythic",
+        spiceLevel: 4.7,
+        emotionalResonance: 4.5,
+        suspenseLevel: 4.4,
+      );
+    }
+
+    // Haunting Adeline / Cat and Mouse Duet by H.D. Carlton
+    if (titleLower.contains('haunting adeline') || titleLower.contains('hunting adeline') || titleLower.contains('cat and mouse')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "A gothic author uncovers her grandmother's unsolved murder in an inherited manor, pursued by a ruthless vigilante from the shadows.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "The Manipulator and the Shadow. She thought she was safe in Parsons Manor. She was wrong.",
+        setting: "Parsons Manor, Washington State",
+        timePeriod: "Contemporary Dark",
+        atmosphere: "Gothic, Terrifying, Obsessive, Scorching",
+        characters: const [
+          CodexCharacter(
+            name: "Adeline Reilly",
+            role: "Female Lead / Author",
+            archetype: "The Defiant Prey",
+            description: "An independent gothic writer who inherits her great-grandmother's mysterious estate and finds herself hunted in the dark.",
+          ),
+          CodexCharacter(
+            name: "Zade Meadows",
+            role: "Male Lead / The Shadow",
+            archetype: "The Ruthless Vigilante",
+            description: "A dark, highly trained vigilante hacker who wages war on global traffickers while nursing a dangerous obsession with Adeline.",
+            quote: "I will burn this entire world before I let anyone hurt you, Little Mouse.",
+          ),
+        ],
+        tropes: const [
+          "Morally Grey Anti-Hero",
+          "Stalker Romance",
+          "Touch Her and Die",
+          "Gothic Manor Secrets",
+        ],
+        contentWarnings: const ["Extreme Dark Themes", "Non-Consensual / Dubious Consent", "Graphic Violence"],
+        pacing: "Intense & Relentless",
+        tone: "Dark, Unapologetic, Seductive",
+        spiceLevel: 5.0,
+        emotionalResonance: 3.5,
+        suspenseLevel: 5.0,
+      );
+    }
+
+    // Shatter Me by Tahereh Mafi
+    if (titleLower.contains('shatter me') || titleLower.contains('unravel me') || titleLower.contains('ignite me')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "One touch is all it takes. One touch, and Juliette Ferrars can kill a fully grown man.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Juliette hasn't touched someone in 264 days. The last time she did, it was an accident, but The Reestablishment locked her up. When she's released as a weapon, she chooses to fight back.",
+        setting: "Sector 45 & Omega Point",
+        timePeriod: "Dystopian Ruined Earth",
+        atmosphere: "Lyrical, Tense, Romantic, Electrifying",
+        characters: const [
+          CodexCharacter(
+            name: "Juliette Ferrars",
+            role: "Female Lead / Protagonist",
+            archetype: "The Lethal Survivor",
+            description: "A young woman whose touch is fatal, locked away in isolation until forced to embrace her extraordinary power.",
+            quote: "I am a drop of hurricane water.",
+          ),
+          CodexCharacter(
+            name: "Aaron Warner",
+            role: "Male Lead / Supreme Commander",
+            archetype: "The Misunderstood Tyrant",
+            description: "The ruthless, calculating commander of Sector 45 who recognizes Juliette's true strength and loves her unconditionally.",
+            quote: "My heart is heavy and hollow. And that is where I will begin.",
+          ),
+          CodexCharacter(
+            name: "Kenji Kishimoto",
+            role: "Supporting Figure / Rebel",
+            archetype: "The Loyal Comedian",
+            description: "An Omega Point rebel soldier with invisibility powers who becomes Juliette's staunchest friend and confidant.",
+          ),
+        ],
+        tropes: const [
+          "Enemies to Lovers",
+          "Dystopian Superpowers",
+          "Touch Her and Die",
+          "Villain Gets the Girl",
+        ],
+        contentWarnings: const ["Violence", "Torture Mention"],
+        pacing: "Fast & Lyrical",
+        tone: "Poetic, Fiery, Dynamic",
+        spiceLevel: 3.8,
+        emotionalResonance: 4.8,
+        suspenseLevel: 4.5,
+      );
+    }
+
+    // Twisted Love by Ana Huang
+    if (titleLower.contains('twisted love')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "He has a heart of ice. But for her, he'd burn the world.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Alex Volkov is a devil blessed with the face of an angel and cursed with a past he can't escape. When he agrees to look after his best friend's sister, a forbidden obsession begins.",
+        setting: "Washington D.C.",
+        timePeriod: "Contemporary High Society",
+        atmosphere: "Seductive, Brooding, Luxurious, Tense",
+        characters: const [
+          CodexCharacter(
+            name: "Alex Volkov",
+            role: "Male Lead",
+            archetype: "The Cold Billionaire",
+            description: "A brilliant, vengeful Wall Street prodigy whose frozen heart is only melted by his best friend's sister.",
+            quote: "You are the light to my dark, sunshine.",
+          ),
+          CodexCharacter(
+            name: "Ava Chen",
+            role: "Female Lead",
+            archetype: "The Resilient Optimist",
+            description: "A free-spirited photography student with childhood trauma who radiates warmth and sees the good in Alex.",
+          ),
+        ],
+        tropes: const [
+          "Brother's Best Friend",
+          "Grumpy x Sunshine",
+          "Touch Her and Die",
+          "Revenge Romance",
+        ],
+        contentWarnings: const ["Trauma & Abuse Mention", "Explicit Romance"],
+        pacing: "Simmering & Gripping",
+        tone: "Dark, Romantic, Luxe",
+        spiceLevel: 4.5,
+        emotionalResonance: 4.3,
+        suspenseLevel: 4.0,
+      );
+    }
+
+    // The Love Hypothesis by Ali Hazelwood
+    if (titleLower.contains('love hypothesis')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "A third-year Ph.D. candidate panics and kisses the first man she sees in a hallway—who turns out to be the department's tyrannical young professor.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "When a fake-relationship between scientists meets the irresistible force of attraction, it throws one woman's carefully calculated theories on love into chaos.",
+        setting: "Stanford University, California",
+        timePeriod: "Contemporary Academia",
+        atmosphere: "Banter-Filled, Charming, Wholesome, Steamy",
+        characters: const [
+          CodexCharacter(
+            name: "Olive Smith",
+            role: "Female Lead",
+            archetype: "The Practical Scientist",
+            description: "A passionate biology Ph.D. student who doesn't believe in lasting love until forced into a fake romance.",
+          ),
+          CodexCharacter(
+            name: "Adam Carlsen",
+            role: "Male Lead",
+            archetype: "The Grumpy Genius",
+            description: "A notoriously harsh, brilliant biology professor whose stoic demeanor softens exclusively for Olive.",
+            quote: "I'm not doing this for the department, Olive. I'm doing this for you.",
+          ),
+        ],
+        tropes: const [
+          "Fake Dating",
+          "Grumpy x Sunshine",
+          "Academic Rivals to Lovers",
+          "Height Difference",
+        ],
+        contentWarnings: const ["Academic Sexual Harassment Mention"],
+        pacing: "Breezy & Addictive",
+        tone: "Witty, Warm, Swoon-Worthy",
+        spiceLevel: 3.5,
+        emotionalResonance: 4.4,
+        suspenseLevel: 2.0,
+      );
+    }
+
+    // The Hunger Games by Suzanne Collins
+    if (titleLower.contains('hunger games') || titleLower.contains('catching fire') || titleLower.contains('mockingjay')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "In a dark vision of the near future, twelve boys and twelve girls are forced to participate in a televised battle to the death.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Winning means fame and fortune. Losing means certain death. The nation of Panem forces its twelve districts to send one boy and one girl to compete in the annual Hunger Games.",
+        setting: "Panem (The Capitol & District 12)",
+        timePeriod: "Post-Apocalyptic Dystopian",
+        atmosphere: "Brutal, Harrowing, High-Stakes, Defiant",
+        characters: const [
+          CodexCharacter(
+            name: "Katniss Everdeen",
+            role: "Female Lead / The Mockingjay",
+            archetype: "The Reluctant Rebel",
+            description: "A fierce sixteen-year-old archer from District 12 who volunteers to save her sister and sparks a nation's rebellion.",
+            quote: "I volunteer as tribute!",
+          ),
+          CodexCharacter(
+            name: "Peeta Mellark",
+            role: "Male Lead / Baker's Son",
+            archetype: "The Gentle Strategist",
+            description: "A compassionate boy with a silver tongue whose public declaration of love protects Katniss inside the arena.",
+            quote: "I just don't want them to change me. If I die, I want to still be me.",
+          ),
+          CodexCharacter(
+            name: "Gale Hawthorne",
+            role: "Rebel Hunter",
+            archetype: "The Fierce Partisan",
+            description: "Katniss's childhood hunting partner in District 12 who harbors revolutionary anger against the Capitol.",
+          ),
+        ],
+        tropes: const [
+          "Dystopian Battle Royale",
+          "Fake Romance for Survival",
+          "Rebellion against Tyranny",
+          "Love Triangle",
+        ],
+        contentWarnings: const ["Graphic Peril & Death", "Oppression & Starvation"],
+        pacing: "Fast-Paced & Relentless",
+        tone: "Somber, Defiant, Thrilling",
+        spiceLevel: 1.0,
+        emotionalResonance: 4.8,
+        suspenseLevel: 5.0,
+      );
+    }
+
+    // Pride and Prejudice by Jane Austen
+    if (titleLower.contains('pride and prejudice')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "Sparks fly when spirited Elizabeth Bennet meets single, rich, and proud Mr. Darcy in 19th-century England.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Elizabeth Bennet is keen and witty, with a sharp eye for social hypocrisies. When she meets the haughty Mr. Darcy, her prejudice clashes with his aristocratic pride.",
+        setting: "Hertfordshire & Pemberley, England",
+        timePeriod: "Regency Era (1810s)",
+        atmosphere: "Witty, Elegant, Intellectual, Romantic",
+        characters: const [
+          CodexCharacter(
+            name: "Elizabeth Bennet",
+            role: "Female Lead",
+            archetype: "The Witty Rebel",
+            description: "A sharp-witted, independent gentlewoman who refuses to marry for convenience or bow to social pressure.",
+            quote: "There is a stubbornness about me that never can bear to be frightened at the will of others.",
+          ),
+          CodexCharacter(
+            name: "Fitzwilliam Darcy",
+            role: "Male Lead",
+            archetype: "The Proud Master",
+            description: "The wealthy, reserved master of Pemberley whose haughty demeanor hides profound integrity and devotion.",
+            quote: "You have bewitched me, body and soul, and I love, I love, I love you.",
+          ),
+        ],
+        tropes: const [
+          "Enemies to Lovers",
+          "Opposites Attract",
+          "Class Divide Romance",
+          "Misunderstandings & Redemption",
+        ],
+        contentWarnings: const ["Social Coercion & Classism"],
+        pacing: "Refined & Engaging",
+        tone: "Satirical, Romantic, Luminous",
+        spiceLevel: 1.5,
+        emotionalResonance: 4.7,
+        suspenseLevel: 2.5,
+      );
+    }
+
+    // The Silent Patient by Alex Michaelides
+    if (titleLower.contains('silent patient')) {
+      return StoryCodex(
+        bookId: book.id,
+        premise: "A famous painter shoots her husband five times in the face and never speaks another word.",
+        synopsis: effectiveSynopsis.isNotEmpty && !BookMetadataSanitizer.isTruncatedSynopsis(effectiveSynopsis)
+            ? effectiveSynopsis
+            : "Alicia Berenson's life is seemingly perfect. One evening, she shoots her husband Gabriel in the face and never speaks again. Forensic psychotherapist Theo Faber is determined to uncover the truth.",
+        setting: "The Grove Psychiatric Unit, London",
+        timePeriod: "Contemporary Psychological",
+        atmosphere: "Claustrophobic, Ominous, Intellectual, Chilling",
+        characters: const [
+          CodexCharacter(
+            name: "Alicia Berenson",
+            role: "Female Lead / The Silent Enigma",
+            archetype: "The Tragic Artist",
+            description: "A gifted painter whose mysterious silence after her husband's murder conceals a shocking reality.",
+          ),
+          CodexCharacter(
+            name: "Theo Faber",
+            role: "Male Lead / Psychotherapist",
+            archetype: "The Obsessive Healer",
+            description: "A forensic psychotherapist whose obsession with curing Alicia borders on dangerous delusion.",
+          ),
+        ],
+        tropes: const [
+          "Unreliable Narrator",
+          "Psychological Mind Games",
+          "Shocking Plot Twist",
+          "Dark Secrets",
+        ],
+        contentWarnings: const ["Murder & Violence", "Domestic Abuse Mention"],
+        pacing: "Tense & Methodical",
+        tone: "Mysterious, Gripping, Noir",
+        spiceLevel: 1.5,
+        emotionalResonance: 4.0,
+        suspenseLevel: 5.0,
+      );
+    }
+
     // 2. Dynamic Synthesis for Any Other Title
     final dominantGenre = book.genres.isNotEmpty ? book.genres.first : "Fiction";
     final cleanPremise = book.effectiveTagline;
 
     // Real candidate extraction from synopsis (never generic placeholders)
-    final dynamicCharacters = _extractCandidateCharacters(
+    final dynamicCharacters = extractCandidateCharacters(
       synopsis: effectiveSynopsis,
       author: book.author,
       title: book.title,
@@ -620,16 +1019,131 @@ class StoryCodexEngine {
         titleLower.contains('verity') ||
         titleLower.contains('king of wrath') ||
         titleLower.contains('twisted games') ||
+        titleLower.contains('twisted love') ||
         titleLower.contains('dune') ||
         titleLower.contains('court of thorns and roses') ||
         titleLower.contains('acotar') ||
         titleLower.contains('fourth wing') ||
         titleLower.contains('evelyn hugo') ||
-        titleLower.contains('beach read');
+        titleLower.contains('beach read') ||
+        titleLower.contains('cruel prince') ||
+        titleLower.contains('blood and ash') ||
+        titleLower.contains('haunting adeline') ||
+        titleLower.contains('shatter me') ||
+        titleLower.contains('love hypothesis') ||
+        titleLower.contains('hunger games') ||
+        titleLower.contains('pride and prejudice') ||
+        titleLower.contains('silent patient');
+  }
+
+  static final Set<String> _knownAuthorsBlacklist = {
+    'colleen hoover', 'hoover', 'sarah j maas', 'sarah maas', 'maas',
+    'rebecca yarros', 'yarros', 'emily henry', 'henry', 'ali hazelwood', 'hazelwood',
+    'taylor jenkins reid', 'reid', 'ana huang', 'huang', 'rina kent', 'kent',
+    'lucy score', 'score', 'hannah grace', 'grace', 'elena armas', 'armas',
+    'penelope douglas', 'douglas', 'lauren asher', 'asher', 'elle kennedy', 'kennedy',
+    'jennifer l armentrout', 'jennifer armentrout', 'armentrout', 'holly black', 'black',
+    'leigh bardugo', 'bardugo', 'suzanne collins', 'collins', 'george r r martin', 'martin',
+    'j k rowling', 'jk rowling', 'rowling', 'brandon sanderson', 'sanderson',
+    'neil gaiman', 'gaiman', 'v e schwab', 've schwab', 'schwab', 'cassandra clare', 'clare',
+    'tessa bailey', 'bailey', 'christina lauren', 'lauren', 'freida mcfadden', 'mcfadden',
+    'alex michaelides', 'michaelides', 'holly jackson', 'jackson', 'john green', 'green',
+    'rick riordan', 'riordan', 'stephen king', 'king', 'agatha christie', 'christie',
+    'jane austen', 'austen', 'charlotte bronte', 'bronte', 'emily bronte',
+    'charles dickens', 'dickens', 'f scott fitzgerald', 'fitzgerald',
+    'george orwell', 'orwell', 'harper lee', 'mary shelley', 'shelley',
+    'bram stoker', 'stoker', 'oscar wilde', 'wilde', 'arthur conan doyle', 'doyle',
+    'leo tolstoy', 'tolstoy', 'fyodor dostoevsky', 'dostoevsky', 'franz kafka', 'kafka',
+    'ernest hemingway', 'hemingway', 'j r r tolkien', 'tolkien', 'c s lewis', 'lewis',
+    'frank herbert', 'herbert', 'isaac asimov', 'asimov', 'dan brown',
+    'gillian flynn', 'flynn', 'paula hawkins', 'hawkins', 'lisa jewell', 'jewell',
+    'shari lapena', 'lapena', 'ruth ware', 'ware', 'lucy foley', 'foley',
+    'riley sager', 'sager', 'karen m mcmanus', 'mcmanus', 'stephanie garber', 'garber',
+    'tahereh mafi', 'mafi', 'sabaa tahir', 'tahir', 'victoria aveyard', 'aveyard',
+    'tracy wolff', 'wolff', 'laura thalassa', 'thalassa', 'carissa broadbent', 'broadbent',
+    'raven kennedy', 'danielle l jensen', 'jensen', 'scarlett st clair', 'st clair',
+    'h d carlton', 'hd carlton', 'carlton', 'tillie cole', 'cole', 'shantel tessier', 'tessier',
+    'sophie lark', 'lark', 'runyx', 'mia sheridan', 'sheridan', 'brittainy c cherry', 'cherry',
+    'meghan quinn', 'quinn', 'vi keeland', 'keeland', 'penelope ward', 'ward',
+    'devney perry', 'perry', 'elsie silver', 'silver',
+  };
+
+  /// Strict author and non-character detector
+  static bool isAuthorOrNonCharacter(String candidate, String author, String title, [String? synopsis]) {
+    final candClean = candidate.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (candClean.isEmpty || candClean.length < 2) return true;
+
+    // 1. Check title match
+    final titleClean = title.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (candClean == titleClean) return true;
+
+    // 2. Comprehensive Author Matching (Supports "First Last", "Last, First", and sub-tokens)
+    final authorClean = author.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (authorClean.isNotEmpty) {
+      if (candClean == authorClean || authorClean.contains(candClean) || candClean.contains(authorClean)) {
+        return true;
+      }
+      final authorWords = authorClean.split(RegExp(r'\s+')).where((w) => w.length >= 2).toSet();
+      final candWords = candClean.split(RegExp(r'\s+')).where((w) => w.length >= 2).toSet();
+
+      // If candidate is a subset of author words or matches any author word
+      if (candWords.isNotEmpty && candWords.every((w) => authorWords.contains(w))) {
+        return true;
+      }
+      for (final word in authorWords) {
+        if (candClean == word || candWords.contains(word)) {
+          return true;
+        }
+      }
+    }
+
+    // 3. Known famous authors blacklist
+    if (_knownAuthorsBlacklist.contains(candClean)) return true;
+    for (final auth in _knownAuthorsBlacklist) {
+      if (candClean == auth) return true;
+    }
+
+    // 4. Non-character publishing and marketing stopwords
+    const blacklist = {
+      'the', 'when', 'what', 'where', 'then', 'this', 'that', 'with', 'from', 'after',
+      'before', 'into', 'over', 'under', 'every', 'some', 'author', 'novel', 'book',
+      'story', 'edition', 'standalone', 'paperback', 'hardcover', 'kindle', 'bestseller',
+      'bestselling', 'national', 'international', 'penguin', 'harpercollins', 'simon',
+      'schuster', 'macmillan', 'bloomsbury', 'goodreads', 'review', 'times', 'york',
+      'today', 'usa today', 'new york times', 'chapter', 'prologue', 'epilogue', 'volume',
+      'series', 'trilogy', 'central protagonist', 'key counterpart', 'lead character',
+      'united states', 'new york', 'london', 'england', 'paris', 'america',
+      'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+      'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday',
+      'thursday', 'friday', 'saturday', 'sunday', 'summer', 'winter', 'spring', 'fall',
+      'editor', 'illustrator', 'translator', 'narrator', 'foreword', 'preface',
+      'fiction', 'nonfiction', 'memoir', 'autobiography', 'biography', 'special edition',
+      'collector', 'deluxe', 'reading', 'readers', 'recommendation', 'praise', 'fans of',
+      'award winning', 'acclaimed', 'critics', 'publisher', 'audiobook',
+    };
+    if (blacklist.contains(candClean)) return true;
+
+    // 5. Contextual author blurb detection in synopsis
+    if (synopsis != null && synopsis.isNotEmpty) {
+      final synLower = synopsis.toLowerCase();
+      final candEscaped = RegExp.escape(candClean);
+      final authorContextPatterns = [
+        RegExp(r'\b(?:by|author|written by|novel by|from author|bestselling author|acclaimed author)\s+' + candEscaped + r'\b'),
+        RegExp(r'\b' + candEscaped + r'\s+(?:delivers|presents|writes|returns with|crafts|weaves|pens)\b'),
+        RegExp(r'\b(?:praise for|fans of)\s+' + candEscaped + r'\b'),
+      ];
+      for (final p in authorContextPatterns) {
+        if (p.hasMatch(synLower)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /// Extracts verified character names from the synopsis text while rigorously excluding authors
-  static List<CodexCharacter> _extractCandidateCharacters({
+  static List<CodexCharacter> extractCandidateCharacters({
     required String synopsis,
     required String author,
     required String title,
@@ -639,41 +1153,81 @@ class StoryCodexEngine {
     final characters = <CodexCharacter>[];
     final seen = <String>{};
 
-    final authorLower = author.trim().toLowerCase();
-    final authorParts = authorLower.split(RegExp(r'[\s,.-]+')).where((p) => p.length >= 3).toSet();
     final titleLower = title.trim().toLowerCase();
 
-    final stopWords = {
-      'The', 'When', 'What', 'Where', 'Then', 'This', 'That', 'With', 'From', 'After',
-      'Before', 'Into', 'Over', 'Under', 'Every', 'Some', 'Author', 'Novel', 'Book',
-      'Story', 'Edition', 'USA', 'Today', 'New', 'York', 'Times', 'Bestselling',
-      'First', 'Second', 'Third', 'Chapter', 'Volume', 'National', 'International',
-      'Lead', 'Character', 'Central', 'Protagonist', 'Counterpart', 'Summer', 'Winter',
-    };
+    // 1. Lead Introduction Patterns (Captures both single names and two-word names)
+    final leadPatterns = [
+      RegExp(r'\b([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+(?:is|was)\s+(?:a|an|the)\s+([a-zA-Z\s]{3,40})'),
+      RegExp(r'When\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+([a-zA-Z\s]{4,35}),'),
+      RegExp(r'Told\s+(?:from\s+the\s+perspective\s+of|alternating\s+between)\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\s+and\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)'),
+      RegExp(r'For\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+'),
+      RegExp(r'Enter\s+([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?),\s+(?:a|an)\s+'),
+    ];
 
-    final nameRegex = RegExp(r'\b([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}))\b');
-    final matches = nameRegex.allMatches(synopsis);
+    final sentences = synopsis.split(RegExp(r'(?<=[.!?])\s+'));
 
-    for (final match in matches) {
+    for (final pattern in leadPatterns) {
+      for (final match in pattern.allMatches(synopsis)) {
+        for (int i = 1; i <= match.groupCount; i++) {
+          final cand = match.group(i)?.trim();
+          if (cand == null || cand.length < 3) continue;
+          if (isAuthorOrNonCharacter(cand, author, title, synopsis)) continue;
+          final candLower = cand.toLowerCase();
+          if (seen.contains(candLower)) continue;
+
+          seen.add(candLower);
+          final isFirst = characters.isEmpty;
+          final role = isFirst ? 'Protagonist / Lead' : (characters.length == 1 ? 'Central Figure / Counterpart' : 'Supporting Figure');
+
+          String bio = 'Key figure shaping the narrative conflict and themes.';
+          for (final s in sentences) {
+            if (s.contains(cand) && s.length > 25 && s.length < 220) {
+              bio = s.trim();
+              break;
+            }
+          }
+
+          characters.add(CodexCharacter(
+            name: cand,
+            role: role,
+            archetype: _inferArchetype(genres, titleLower),
+            description: bio,
+          ));
+
+          if (characters.length >= 3) break;
+        }
+        if (characters.length >= 3) break;
+      }
+      if (characters.length >= 3) break;
+    }
+
+    if (characters.length >= 2) return characters;
+
+    // 2. Frequency & Prominence Matching (Supporting Two-Word and Single-Name Proper Nouns)
+    final properNounRegex = RegExp(r'\b([A-Z][a-z]{2,15}(?:\s+[A-Z][a-z]{2,15})?)\b');
+    final nameFrequency = <String, int>{};
+
+    for (final match in properNounRegex.allMatches(synopsis)) {
       final cand = match.group(1)!.trim();
-      final candLower = cand.toLowerCase();
-      final firstWord = cand.split(' ').first;
+      if (isAuthorOrNonCharacter(cand, author, title, synopsis)) continue;
+      nameFrequency[cand] = (nameFrequency[cand] ?? 0) + 1;
+    }
 
-      if (stopWords.contains(firstWord)) continue;
-      if (candLower == titleLower) continue;
-      if (authorLower.isNotEmpty && (candLower == authorLower || authorLower.contains(candLower))) continue;
-      if (authorParts.any((p) => candLower.contains(p))) continue;
+    final sortedCandidates = nameFrequency.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    for (final entry in sortedCandidates) {
+      final cand = entry.key;
+      final candLower = cand.toLowerCase();
       if (seen.contains(candLower)) continue;
 
       seen.add(candLower);
       final isFirst = characters.isEmpty;
       final role = isFirst ? 'Protagonist / Lead' : (characters.length == 1 ? 'Central Figure / Counterpart' : 'Supporting Figure');
 
-      // Find excerpt sentence
-      String bio = 'Key figure shaping the narrative conflict and themes.';
-      final sentences = synopsis.split(RegExp(r'(?<=[.!?])\s+'));
+      String bio = 'Key figure shaping the central conflict and emotional stakes of the narrative.';
       for (final s in sentences) {
-        if (s.contains(cand) && s.length > 20 && s.length < 200) {
+        if (s.contains(cand) && s.length > 25 && s.length < 220) {
           bio = s.trim();
           break;
         }
@@ -692,4 +1246,5 @@ class StoryCodexEngine {
     return characters;
   }
 }
+
 

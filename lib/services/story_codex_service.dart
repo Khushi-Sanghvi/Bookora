@@ -461,46 +461,8 @@ class StoryCodexService {
   }
 
   /// Strict negative filter to ensure authors, publishers, formats, and non-character entities are discarded
-  static bool _isAuthorOrNonCharacter(String candidate, String author, String title) {
-    final candLower = candidate.trim().toLowerCase();
-    if (candLower.isEmpty || candLower.length < 3) return true;
-
-    // Check author exact & token matches
-    final authorLower = author.trim().toLowerCase();
-    if (authorLower.isNotEmpty) {
-      if (candLower == authorLower || authorLower.contains(candLower) || candLower.contains(authorLower)) {
-        return true;
-      }
-      final authorParts = authorLower.split(RegExp(r'[\s,.-]+')).where((p) => p.length >= 3);
-      for (final part in authorParts) {
-        if (candLower == part || candLower.contains(part)) {
-          return true;
-        }
-      }
-    }
-
-    // Check title matches
-    final titleLower = title.trim().toLowerCase();
-    if (candLower == titleLower) return true;
-
-    const blacklist = {
-      'the', 'when', 'what', 'where', 'then', 'this', 'that', 'with', 'from', 'after',
-      'before', 'into', 'over', 'under', 'every', 'some', 'author', 'novel', 'book',
-      'story', 'edition', 'standalone', 'paperback', 'hardcover', 'kindle', 'bestseller',
-      'bestselling', 'national', 'international', 'penguin', 'harpercollins', 'simon',
-      'schuster', 'macmillan', 'bloomsbury', 'goodreads', 'review', 'times', 'york',
-      'today', 'usa today', 'new york times', 'chapter', 'prologue', 'epilogue', 'volume',
-      'series', 'trilogy', 'central protagonist', 'key counterpart', 'lead character',
-      'united states', 'new york', 'london', 'england', 'paris', 'america',
-      'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
-      'september', 'october', 'november', 'december', 'monday', 'tuesday', 'wednesday',
-      'thursday', 'friday', 'saturday', 'sunday', 'summer', 'winter', 'spring', 'fall',
-      'editor', 'illustrator', 'translator', 'narrator', 'foreword', 'preface',
-    };
-
-    if (blacklist.contains(candLower)) return true;
-
-    return false;
+  static bool _isAuthorOrNonCharacter(String candidate, String author, String title, [String? synopsis]) {
+    return StoryCodexEngine.isAuthorOrNonCharacter(candidate, author, title, synopsis);
   }
 
   /// Character Extraction via Named Entity Recognition & Lead Persona Heuristics
@@ -517,10 +479,16 @@ class StoryCodexService {
     // 1. Process external people & characters extracted from Open Library / Wikidata
     for (final person in externalPeople) {
       final clean = person.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
-      if (clean.length > 2 && !_isAuthorOrNonCharacter(clean, author, title) && !seenNames.contains(clean.toLowerCase())) {
+      if (clean.length > 2 &&
+          !_isAuthorOrNonCharacter(clean, author, title, synopsisText) &&
+          !seenNames.contains(clean.toLowerCase())) {
         seenNames.add(clean.toLowerCase());
         final isFirst = characters.isEmpty;
-        final role = isFirst ? 'Protagonist / Lead' : (characters.length == 1 ? 'Central Figure / Counterpart' : 'Supporting Figure');
+        final role = isFirst
+            ? 'Protagonist / Lead'
+            : (characters.length == 1
+                ? 'Central Figure / Counterpart'
+                : 'Supporting Figure');
         characters.add(CodexCharacter(
           name: clean,
           role: role,
@@ -533,78 +501,18 @@ class StoryCodexService {
 
     if (characters.length >= 2) return characters;
 
-    // 2. Client-side Named Entity Recognition (NER) and Lead Pattern Detection
-    final synopsisLower = synopsisText.toLowerCase();
+    // 2. High-precision candidate extraction from synopsis via StoryCodexEngine
+    final candidates = StoryCodexEngine.extractCandidateCharacters(
+      synopsis: synopsisText,
+      author: author,
+      title: title,
+      genres: genres,
+    );
 
-    // Scan for lead sentence patterns: "X is a ...", "When X meets Y...", "Told from the perspective of X and Y..."
-    final leadPatterns = [
-      RegExp(r'\b([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?)\s+(?:is|was)\s+(?:a|an|the)\s+([a-zA-Z\s]{3,35})'),
-      RegExp(r'When\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?)\s+([a-zA-Z\s]{4,35}),'),
-      RegExp(r'Told\s+(?:from\s+the\s+perspective\s+of|alternating\s+between)\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?)\s+and\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?)'),
-      RegExp(r'For\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?),\s+'),
-      RegExp(r'Enter\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15})?),\s+(?:a|an)\s+'),
-    ];
-
-    for (final pattern in leadPatterns) {
-      for (final match in pattern.allMatches(synopsisText)) {
-        for (int i = 1; i <= match.groupCount; i++) {
-          final cand = match.group(i)?.trim();
-          if (cand != null && cand.length > 2 && !_isAuthorOrNonCharacter(cand, author, title) && !seenNames.contains(cand.toLowerCase())) {
-            seenNames.add(cand.toLowerCase());
-            final isFemale = _detectGender(cand, synopsisText) == 'female';
-            final role = characters.isEmpty
-                ? (isFemale ? 'Female Lead / Protagonist' : 'Male Lead / Protagonist')
-                : (characters.length == 1
-                    ? (isFemale ? 'Female Lead / Counterpart' : 'Male Lead / Counterpart')
-                    : 'Central Figure');
-
-            characters.add(CodexCharacter(
-              name: cand,
-              role: role,
-              archetype: _inferCharacterArchetype(cand, synopsisText, genres),
-              description: _inferCharacterDescription(cand, synopsisText, role),
-            ));
-          }
-          if (characters.length >= 3) break;
-        }
-        if (characters.length >= 3) break;
-      }
-      if (characters.length >= 3) break;
-    }
-
-    if (characters.length >= 2) return characters;
-
-    // 3. Frequency-based Proper Noun NER Scanner
-    final nameRegex = RegExp(r'\b([A-Z][a-z]{1,14}(?:\s+[A-Z][a-z]{1,14}))\b');
-    final candidates = <String, int>{};
-    for (final match in nameRegex.allMatches(synopsisText)) {
-      final name = match.group(1)!.trim();
-      if (_isAuthorOrNonCharacter(name, author, title)) continue;
-      candidates[name] = (candidates[name] ?? 0) + 1;
-    }
-
-    // Sort by frequency of occurrence
-    final sortedCandidates = candidates.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-
-    for (final entry in sortedCandidates) {
-      final name = entry.key;
-      if (!seenNames.contains(name.toLowerCase())) {
-        seenNames.add(name.toLowerCase());
-        final isFemale = _detectGender(name, synopsisText) == 'female';
-        final isAntagonist = synopsisLower.contains('enemy') || synopsisLower.contains('rival') || synopsisLower.contains('villain') || synopsisLower.contains('threat');
-
-        final role = characters.isEmpty
-            ? (isFemale ? 'Female Lead / Protagonist' : 'Male Lead / Protagonist')
-            : (characters.length == 1
-                ? (isAntagonist ? 'Antagonist / Counterpart' : (isFemale ? 'Female Lead / Love Interest' : 'Male Lead / Love Interest'))
-                : 'Central Figure');
-
-        characters.add(CodexCharacter(
-          name: name,
-          role: role,
-          archetype: _inferCharacterArchetype(name, synopsisText, genres),
-          description: _inferCharacterDescription(name, synopsisText, role),
-        ));
+    for (final c in candidates) {
+      if (!seenNames.contains(c.name.toLowerCase())) {
+        seenNames.add(c.name.toLowerCase());
+        characters.add(c);
       }
       if (characters.length >= 3) break;
     }
