@@ -1892,7 +1892,7 @@ class _FormatAndDocumentsSheetState
             const Icon(Icons.check_rounded, size: 20),
             const SizedBox(width: 8),
             Text(
-              '✓ Save $formatName Setup',
+              'Save $formatName Setup',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
             ),
             const Spacer(),
