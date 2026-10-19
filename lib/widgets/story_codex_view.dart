@@ -704,6 +704,7 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
                   Icons.auto_awesome_rounded,
@@ -736,16 +737,19 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                     ],
                   ),
                 ),
-                Row(
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Auto-Fetch button (positioned above Add Character, on the red mark)
                     InkWell(
                       onTap: _isAutoFetching ? null : _autoFetchCharactersOnline,
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 9,
+                          vertical: 3.5,
                         ),
                         decoration: BoxDecoration(
                           color: accentGold.withValues(alpha: 0.12),
@@ -759,20 +763,20 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                           children: [
                             if (_isAutoFetching)
                               SizedBox(
-                                width: 12,
-                                height: 12,
+                                width: 11,
+                                height: 11,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 1.5,
                                   valueColor: AlwaysStoppedAnimation<Color>(accentGold),
                                 ),
                               )
                             else
-                              Icon(Icons.auto_awesome, size: 13, color: accentGold),
+                              Icon(Icons.auto_awesome, size: 12, color: accentGold),
                             const SizedBox(width: 4),
                             Text(
                               _isAutoFetching ? 'Fetching...' : 'Auto-Fetch',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 color: accentGold,
                               ),
@@ -781,14 +785,15 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(height: 5),
+                    // Add Character button (below Auto-Fetch)
                     InkWell(
                       onTap: () => _showCharacterDialog(context),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                          horizontal: 9,
+                          vertical: 3.5,
                         ),
                         decoration: BoxDecoration(
                           color: accentGold.withValues(alpha: 0.15),
@@ -800,12 +805,12 @@ class _StoryCodexContentViewState extends State<StoryCodexContentView> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_rounded, size: 14, color: accentGold),
-                            const SizedBox(width: 4),
+                            Icon(Icons.add_rounded, size: 13, color: accentGold),
+                            const SizedBox(width: 3),
                             Text(
                               'Add Character',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 color: accentGold,
                               ),
