@@ -6,6 +6,7 @@ import 'package:between_world/models/journal_entry.dart';
 import 'package:between_world/models/quote_annotation.dart';
 import 'package:between_world/services/cache_service.dart';
 import 'package:between_world/services/backup_service.dart';
+import 'package:between_world/services/notification_service.dart';
 
 void main() {
   group('CacheService Tests', () {
@@ -189,6 +190,28 @@ void main() {
       expect(badQuote.id, isNotEmpty);
       expect(badQuote.quoteText, '');
       expect(badQuote.pageNumber, 42);
+    });
+  });
+
+  group('NotificationService Spicy Fantasy Dialogues Tests', () {
+    test('contains over 100 spicy fantasy notifications', () {
+      expect(NotificationService.romanticDialogues.length, greaterThanOrEqualTo(108));
+    });
+
+    test('each notification has valid non-empty title and body', () {
+      for (final dialogue in NotificationService.romanticDialogues) {
+        expect(dialogue['title'], isNotNull);
+        expect(dialogue['title']!.trim(), isNotEmpty);
+        expect(dialogue['body'], isNotNull);
+        expect(dialogue['body']!.trim(), isNotEmpty);
+      }
+    });
+
+    test('getRandomRomanticDialogue returns a random dialogue reliably', () {
+      final sample = NotificationService.getRandomRomanticDialogue();
+      expect(sample['title'], isNotNull);
+      expect(sample['body'], isNotNull);
+      expect(NotificationService.romanticDialogues.contains(sample), isTrue);
     });
   });
 }
